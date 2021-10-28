@@ -7,8 +7,8 @@ import time
 def solve_eig(S):
     eig_val, eig_vec = np.linalg.eigh(S)
 
-    sorted_eig_val = np.array(list(reversed(eig_val)))
-    sorted_eig_vec = np.array(list(reversed(eig_vec)))
+    sorted_eig_val = np.flip(eig_val)
+    sorted_eig_vec = np.flip(eig_vec, axis=1)
 
     positive_map = sorted_eig_val > 0
     positive_sorted_eig_val = sorted_eig_val[positive_map]
@@ -34,8 +34,6 @@ S_low = np.matmul(A.transpose(), A) / 520
 positive_sorted_eig_val, positive_sorted_eig_vec = solve_eig(S)
 positive_sorted_eig_val_low, positive_sorted_eig_vec_low = solve_eig(S_low)
 
-# positive_sorted_eig_val, positive_sorted_eig_vec = solve_eig(S)
-
 print("elasped time is ", time.time() - start_time)
 
 # Check eigen vectors and eigen values are identical.
@@ -60,7 +58,7 @@ plt.show()
 
 
 # Face Reconstruction
-M = 1000
+M = 100
 index = 0 # image to reconstruct
 # phi = A[:,index]
 phi = data_flatten[:,index] - mean_flatten
@@ -68,11 +66,11 @@ phi = data_flatten[:,index] - mean_flatten
 face_recon = mean_flatten
 
 for i in range(M):
-    u = positive_sorted_eig_vec[i]
+    # u = positive_sorted_eig_vec[i]
 
-    # # For low dimensional PCA
-    # u = np.matmul(A, u)
-    # u /= np.linalg.norm(u)
+    u = positive_sorted_eig_vec_low[i]
+    u = np.matmul(A, u)
+    u /= np.linalg.norm(u)
 
     a = np.dot(phi, u)
     face_recon += a * u
