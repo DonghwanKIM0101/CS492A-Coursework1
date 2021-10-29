@@ -3,6 +3,13 @@ import numpy as np
 import cv2
 import matplotlib.pyplot as plt
 import time
+from train_test_split import split
+
+M = 416
+INDEX = 0 # image to reconstruct
+WIDTH = 46
+HEIGHT = 56
+TEST_NUMBER = 2
 
 def solve_eig(S):
     eig_val, eig_vec = np.linalg.eigh(S)
@@ -20,16 +27,17 @@ def solve_eig(S):
 start_time = time.time()
 
 mat = scipy.io.loadmat('face.mat')
-data_flatten = mat['X']
-data = data_flatten.reshape((46,56,-1))
+data_train, _ , data_test, _ = split(mat, TEST_NUMBER)
+data = data_train.reshape((WIDTH,HEIGHT,-1))
 data = np.transpose(data, (1,0,2))
 
 mean_image = np.uint8(np.average(data,2))
-mean_flatten = np.average(data_flatten,1)
+mean_flatten = np.average(data_train,1)
+# cv2.imwrite('mean_image.jpg', np.uint8(mean_image))
 
-A = np.subtract(data_flatten, mean_flatten.reshape((-1,1)))
-S = np.matmul(A, A.transpose()) / 520
-S_low = np.matmul(A.transpose(), A) / 520
+A = np.subtract(data_train, mean_flatten.reshape((-1,1)))
+S = np.matmul(A, A.transpose()) / data_train.shape[1]
+S_low = np.matmul(A.transpose(), A) / data_train.shape[1]
 
 eig_val, eig_vec = solve_eig(S)
 eig_val_low, eig_vec_low = solve_eig(S_low)
@@ -37,9 +45,8 @@ eig_val_low, eig_vec_low = solve_eig(S_low)
 print("elasped time is ", time.time() - start_time)
 
 # Check eigen vectors and eigen values are identical.
-M = 100
-print(eig_val[:M] - eig_val_low[:M])
-
+eig_vec_error = 0
+eig_val_error = np.average(np.abs(eig_val[:M] - eig_val_low[:M]))
 for i in range(M):
     u = eig_vec[:,i]
 
@@ -47,20 +54,20 @@ for i in range(M):
     u_low = np.matmul(A, u_low)
     u_low /= np.linalg.norm(u_low)
 
-    print(np.dot(u, u_low) / (np.linalg.norm(u) * np.linalg.norm(u_low)))
+    eig_vec_error += abs(1 - abs(np.dot(u, u_low) / (np.linalg.norm(u) * np.linalg.norm(u_low))))
 
+eig_vec_error /= M
 # Plot eigen values.
+print(eig_vec_error)
+print(eig_val_error)
 print(eig_vec.shape)
 print(eig_vec_low.shape)
 plt.plot(eig_val)
 plt.plot(eig_val_low)
 plt.show()
 
-
 # Face Reconstruction
-M = 100
-index = 0 # image to reconstruct
-phi = A[:,index]
+phi = A[:,INDEX]
 
 face_recon = mean_flatten
 
@@ -74,15 +81,15 @@ for i in range(M):
     a = np.dot(phi, u)
     face_recon += a * u
 
-    # cv2.imshow("test%d"%i, np.uint8((face_recon).reshape((46,56)).transpose()))
+    # cv2.imshow("test%d"%i, np.uint8((face_recon).reshape((WIDTH,HEIGHT)).transpose()))
 
-print("M is %d, reconstruction error is %f"%(M ,np.linalg.norm(face_recon - data_flatten[:,index])))
+print("M is %d, reconstruction error is %f"%(M ,np.linalg.norm(face_recon - data_train[:,INDEX])))
 
-face_recon = face_recon.reshape((46,56))
+face_recon = face_recon.reshape((WIDTH,HEIGHT))
 face_recon = face_recon.transpose()
 
 cv2.imshow("mean face", mean_image)
-cv2.imshow("original", data[:,:,index])
+cv2.imshow("original", data[:,:,INDEX])
 
 plt.imshow(face_recon, cmap='gist_gray')
 plt.show()
