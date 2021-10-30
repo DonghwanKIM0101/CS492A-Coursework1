@@ -4,9 +4,10 @@ import cv2
 import matplotlib.pyplot as plt
 import time
 from train_test_split import split
+from tqdm import tqdm
 
-M = 100
-INDEX = 0 # image to reconstruct
+M = 400
+INDEX = 8 # image to reconstruct
 WIDTH = 46
 HEIGHT = 56
 TEST_NUMBER = 2
@@ -67,62 +68,113 @@ print("elasped time is ", time.time() - start_time)
 # plt.show()
 
 
-# Face Reconstruction
+# # Face Reconstruction
 # phi = data_test[:,INDEX] - mean_flatten
 
-#     face_recon = mean_flatten
+# face_recon = mean_flatten
 
-#     for i in range(M):
-#         # u = eig_vec[:,i]
+# for i in range(M):
+#     u = eig_vec[:,i]
 
-#         u = eig_vec_low[:,i]
-#         u = np.matmul(A, u)
-#         u /= np.linalg.norm(u)
+#     # u = eig_vec_low[:,i]
+#     # u = np.matmul(A, u)
+#     # u /= np.linalg.norm(u)
 
-#         a = np.dot(phi, u)
-#         face_recon += a * u
+#     a = np.dot(phi, u)
+#     face_recon += a * u
 
-#     # print("M is %d, reconstruction error is %f"%(M ,np.linalg.norm(face_recon - data_test[:,INDEX])))
+# # print("M is %d, reconstruction error is %f"%(M ,np.linalg.norm(face_recon - data_test[:,INDEX])))
 
-#     face_recon = face_recon.reshape((WIDTH,HEIGHT))
-#     face_recon = face_recon.transpose()
+# face_recon = face_recon.reshape((WIDTH,HEIGHT))
+# face_recon = face_recon.transpose()
 
-#     cv2.imshow("mean face", mean_image)
-#     cv2.imshow("original", data_test[:,INDEX].reshape((WIDTH,HEIGHT)).transpose())
+# cv2.imshow("mean face", mean_image)
+# cv2.imshow("original", data_test[:,INDEX].reshape((WIDTH,HEIGHT)).transpose())
 
-#     cv2.imshow("face reconstruction", np.uint8(face_recon))
-#     cv2.waitKey(0)
+# cv2.imshow("face reconstruction", np.uint8(face_recon))
+# cv2.waitKey(0)
 
 
-BASES = [50, 100]
-INDICES = [0, 2]
+# # Qualitatively face reconstruction
+# BASES = [50, 100]
+# INDICES = [0, 8]
 
-face_recon = mean_flatten
-for index in INDICES:
-    phi = data_test[:,index] - mean_flatten
+# face_recon = mean_flatten
+# for index in INDICES:
+#     phi = data_test[:,index] - mean_flatten
 
-    cv2.imwrite("../Figure/original_%d.jpg"%index, data_test[:,index].reshape((WIDTH,HEIGHT)).transpose())
+#     cv2.imwrite("../Figure/original/original_%d.jpg"%index, data_test[:,index].reshape((WIDTH,HEIGHT)).transpose())
 
-    for m in BASES:
-        face_recon_low = face_recon.copy()
-        face_recon_original = face_recon.copy()
-        print("PCA on bases, %d and index, %d ..."%(m, index))
+#     for m in BASES:
+#         face_recon_low = face_recon.copy()
+#         face_recon_original = face_recon.copy()
+#         print("PCA on bases, %d and index, %d ..."%(m, index))
+
+#         for i in range(m):
+#             u = eig_vec[:,i]
+
+#             u_low = eig_vec_low[:,i]
+#             u_low = np.matmul(A, u_low)
+#             u_low /= np.linalg.norm(u_low)
+
+#             a = np.dot(phi, u)
+#             a_low = np.dot(phi, u_low)
+
+#             face_recon_original +=  a * u
+#             face_recon_low += a_low * u_low
+
+#         face_recon_original = face_recon_original.reshape((WIDTH,HEIGHT)).transpose()
+#         face_recon_low = face_recon_low.reshape((WIDTH,HEIGHT)).transpose()
+
+#         cv2.imwrite("../Figure/test/test_%d_original_%d_%d.jpg"%(TEST_NUMBER, m, index), np.uint8(face_recon_original))
+#         cv2.imwrite("../Figure/test/test_%d_low_%d_%d.jpg"%(TEST_NUMBER, m, index), np.uint8(face_recon_low))
+
+
+# Quantitatively face reconstruction
+Errors_original = []
+Errors_low = []
+
+for m in tqdm(range(eig_val.shape[0])):
+    error = 0
+
+    for index in range(data_test.shape[1]):
+        phi = data_test[:,index] - mean_flatten
+
+        face_recon = mean_flatten
 
         for i in range(m):
             u = eig_vec[:,i]
 
-            u_low = eig_vec_low[:,i]
-            u_low = np.matmul(A, u_low)
-            u_low /= np.linalg.norm(u_low)
+            a = np.dot(phi, u)
+            face_recon += a * u
+
+        error += np.linalg.norm(face_recon - data_test[:,index])
+    
+    error /= data_test.shape[1]
+    Errors_original.append(error)
+
+for m in tqdm(range(eig_val_low.shape[0])):
+    error = 0
+
+    for index in range(data_test.shape[1]):
+        phi = data_test[:,index] - mean_flatten
+
+        face_recon = mean_flatten
+
+        for i in range(m):
+            u = eig_vec_low[:,i]
+            u = np.matmul(A, u)
+            u /= np.linalg.norm(u)
 
             a = np.dot(phi, u)
-            a_low = np.dot(phi, u_low)
+            face_recon += a * u
 
-            face_recon_original +=  a * u
-            face_recon_low += a_low * u_low
+        error += np.linalg.norm(face_recon - data_test[:,index])
+    
+    error /= data_test.shape[1]
+    Errors_low.append(error)
 
-        face_recon_original = face_recon_original.reshape((WIDTH,HEIGHT)).transpose()
-        face_recon_low = face_recon_low.reshape((WIDTH,HEIGHT)).transpose()
-
-        cv2.imwrite("../Figure/original_%d_%d.jpg"%(m, index), np.uint8(face_recon_original))
-        cv2.imwrite("../Figure/low_%d_%d.jpg"%(m, index), np.uint8(face_recon_low))
+plt.plot(Errors_original)
+plt.show()
+plt.plot(Errors_low)
+plt.show()

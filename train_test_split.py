@@ -12,8 +12,8 @@ def split(total_data, test_number):
     te_idx = np.array([])
     for i in range(0,52):
         rand = random.sample(range(0,10), test_number)
-        te_idx = np.append(te_idx, [10*i + rand[0]])
-        te_idx = np.append(te_idx, [10*i + rand[1]])
+        for j in range(test_number):
+            te_idx = np.append(te_idx, [10*i + rand[j]])
     te_idx = te_idx.astype(int)
 
     tn_idx = np.array([])
