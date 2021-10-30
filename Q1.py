@@ -1,3 +1,4 @@
+from numpy.linalg.linalg import eig
 import scipy.io
 import numpy as np
 import cv2
@@ -10,7 +11,7 @@ M = 100
 INDEX = 8 # image to reconstruct
 WIDTH = 46
 HEIGHT = 56
-TEST_NUMBER = 2
+TEST_NUMBER = 8 
 
 def solve_eig(S):
     start_time = time.time()
@@ -43,6 +44,9 @@ S_low = np.matmul(A.transpose(), A) / data_train.shape[1]
 eig_val, eig_vec = solve_eig(S)
 eig_val_low, eig_vec_low = solve_eig(S_low)
 
+eig_vec_low_ = np.matmul(A, eig_vec_low)
+eig_vec_low_ /= np.linalg.norm(eig_vec_low_,axis=0,keepdims=True)
+
 # # Check eigen vectors and eigen values are identical.
 # eig_vec_error = 0
 # eig_val_error = np.average(np.abs(eig_val[:M] - eig_val_low[:M]))
@@ -66,62 +70,46 @@ eig_val_low, eig_vec_low = solve_eig(S_low)
 # plt.show()
 
 
-# Face Reconstruction
-phi = data_test[:,INDEX] - mean_flatten
+# # Face Reconstruction
+# phi = data_test[:,INDEX] - mean_flatten
 
-# for i in range(M):
-#     u = eig_vec[:,i]
+# weight = np.matmul(phi.reshape(1,-1), eig_vec[:,:M])
+# face_recon = mean_flatten + np.matmul(eig_vec[:,:M], weight.transpose()).squeeze()
 
-#     # u = eig_vec_low[:,i]
-#     # u = np.matmul(A, u)
-#     # u /= np.linalg.norm(u)
+# weight_low = np.matmul(phi.reshape(1,-1), eig_vec_low_[:,:M])
+# face_recon_low = mean_flatten + np.matmul(eig_vec_low_[:,:M], weight_low.transpose()).squeeze()
 
-#     a = np.dot(phi, u)
-#     face_recon += a * u
+# face_recon = face_recon.reshape((WIDTH,HEIGHT))
+# face_recon = face_recon.transpose()
 
-weight = np.matmul(phi.reshape(1,-1), eig_vec[:,:M])
+# face_recon_low = face_recon_low.reshape((WIDTH,HEIGHT))
+# face_recon_low = face_recon_low.transpose()
 
-face_recon = mean_flatten + np.matmul(eig_vec[:,:M], weight.transpose()).squeeze()
+# cv2.imshow("mean face", mean_image)
+# cv2.imshow("original", data_test[:,INDEX].reshape((WIDTH,HEIGHT)).transpose())
 
-# print("M is %d, reconstruction error is %f"%(M ,np.linalg.norm(face_recon - data_test[:,INDEX])))
-
-face_recon = face_recon.reshape((WIDTH,HEIGHT))
-face_recon = face_recon.transpose()
-
-cv2.imshow("mean face", mean_image)
-cv2.imshow("original", data_test[:,INDEX].reshape((WIDTH,HEIGHT)).transpose())
-
-cv2.imshow("face reconstruction", np.uint8(face_recon))
-cv2.waitKey(0)
+# cv2.imshow("face reconstruction", np.uint8(face_recon))
+# cv2.imshow("face reconstruction low", np.uint8(face_recon_low))
+# cv2.waitKey(0)
 
 
 # # Qualitatively face reconstruction
 # BASES = [50, 100]
 # INDICES = [0, 8]
 
-# face_recon = mean_flatten
 # for index in INDICES:
 #     phi = data_test[:,index] - mean_flatten
 
 #     cv2.imwrite("../Figure/original/original_%d.jpg"%index, data_test[:,index].reshape((WIDTH,HEIGHT)).transpose())
 
 #     for m in BASES:
-#         face_recon_low = face_recon.copy()
-#         face_recon_original = face_recon.copy()
 #         print("PCA on bases, %d and index, %d ..."%(m, index))
 
-#         for i in range(m):
-#             u = eig_vec[:,i]
+#         weight_original = np.matmul(phi.reshape(1,-1), eig_vec[:,:m])
+#         face_recon_original = mean_flatten + np.matmul(eig_vec[:,:m], weight_original.transpose()).squeeze()
 
-#             u_low = eig_vec_low[:,i]
-#             u_low = np.matmul(A, u_low)
-#             u_low /= np.linalg.norm(u_low)
-
-#             a = np.dot(phi, u)
-#             a_low = np.dot(phi, u_low)
-
-#             face_recon_original +=  a * u
-#             face_recon_low += a_low * u_low
+#         weight_low = np.matmul(phi.reshape(1,-1), eig_vec_low_[:,:m])
+#         face_recon_low = mean_flatten + np.matmul(eig_vec_low_[:,:m], weight_low.transpose()).squeeze()
 
 #         face_recon_original = face_recon_original.reshape((WIDTH,HEIGHT)).transpose()
 #         face_recon_low = face_recon_low.reshape((WIDTH,HEIGHT)).transpose()
@@ -130,51 +118,39 @@ cv2.waitKey(0)
 #         cv2.imwrite("../Figure/test/test_%d_low_%d_%d.jpg"%(TEST_NUMBER, m, index), np.uint8(face_recon_low))
 
 
-# # Quantitatively face reconstruction
-# Errors_original = []
-# Errors_low = []
+# Quantitatively face reconstruction
+Errors_original = []
+Errors_low = []
 
-# for m in tqdm(range(eig_val.shape[0])):
-#     error = 0
+for m in tqdm(range(eig_val.shape[0])):
+    error = 0
 
-#     for index in range(data_test.shape[1]):
-#         phi = data_test[:,index] - mean_flatten
+    for index in range(data_test.shape[1]):
+        phi = data_test[:,index] - mean_flatten
 
-#         face_recon = mean_flatten
+        weight_original = np.matmul(phi.reshape(1,-1), eig_vec[:,:m])
+        face_recon_original = mean_flatten + np.matmul(eig_vec[:,:m], weight_original.transpose()).squeeze()
 
-#         for i in range(m):
-#             u = eig_vec[:,i]
-
-#             a = np.dot(phi, u)
-#             face_recon += a * u
-
-#         error += np.linalg.norm(face_recon - data_test[:,index])
+        error += np.linalg.norm(face_recon_original - data_test[:,index])
     
-#     error /= data_test.shape[1]
-#     Errors_original.append(error)
+    error /= data_test.shape[1]
+    Errors_original.append(error)
 
-# for m in tqdm(range(eig_val_low.shape[0])):
-#     error = 0
+for m in tqdm(range(eig_val_low.shape[0])):
+    error = 0
 
-#     for index in range(data_test.shape[1]):
-#         phi = data_test[:,index] - mean_flatten
+    for index in range(data_test.shape[1]):
+        phi = data_test[:,index] - mean_flatten
 
-#         face_recon = mean_flatten
+        weight_low = np.matmul(phi.reshape(1,-1), eig_vec_low_[:,:m])
+        face_recon_low = mean_flatten + np.matmul(eig_vec_low_[:,:m], weight_low.transpose()).squeeze()
 
-#         for i in range(m):
-#             u = eig_vec_low[:,i]
-#             u = np.matmul(A, u)
-#             u /= np.linalg.norm(u)
-
-#             a = np.dot(phi, u)
-#             face_recon += a * u
-
-#         error += np.linalg.norm(face_recon - data_test[:,index])
+        error += np.linalg.norm(face_recon_low - data_test[:,index])
     
-#     error /= data_test.shape[1]
-#     Errors_low.append(error)
+    error /= data_test.shape[1]
+    Errors_low.append(error)
 
-# plt.plot(Errors_original)
+plt.plot(Errors_original)
 # plt.show()
-# plt.plot(Errors_low)
-# plt.show()
+plt.plot(Errors_low)
+plt.show()

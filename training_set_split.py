@@ -16,16 +16,21 @@ def split_training_set(total_data, total_label, n_subset):
         data_subsets.append(x[:, index]) # data
         label_subsets.append(y[:, index]) # label
 
-    # #data
-    # x_tn_1 = x[:, ((index%8 == 0) + index%8 == 1)]
-    # x_tn_2 = x[:, ((index%8 == 2) + index%8 == 3)]
-    # x_tn_3 = x[:, ((index%8 == 4) + index%8 == 5)]
-    # x_tn_4 = x[:, ((index%8 == 6) + index%8 == 7)]
 
-    # #label
-    # y_tn_1 = y[:, ((index%8 == 0) + index%8 == 1)]
-    # y_tn_2 = y[:, ((index%8 == 2) + index%8 == 3)]
-    # y_tn_3 = y[:, ((index%8 == 4) + index%8 == 5)]
-    # y_tn_4 = y[:, ((index%8 == 6) + index%8 == 7)]
+    # index = (total_index % 8 == 0)
+    # data_subsets.append(x[:, index]) # data
+    # label_subsets.append(y[:, index]) # label
+
+    # index = (total_index % 8 == 1)
+    # data_subsets.append(x[:, index]) # data
+    # label_subsets.append(y[:, index]) # label
+
+    # index = (total_index % 8 == 2) + (total_index % 8 == 3)
+    # data_subsets.append(x[:, index]) # data
+    # label_subsets.append(y[:, index]) # label
+
+    # index = (total_index % 8 == 4) + (total_index % 8 == 5) + (total_index % 8 == 6) + (total_index % 8 == 7)
+    # data_subsets.append(x[:, index]) # data
+    # label_subsets.append(y[:, index]) # label
 
     return data_subsets, label_subsets
