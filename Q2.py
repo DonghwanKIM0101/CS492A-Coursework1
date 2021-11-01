@@ -39,7 +39,7 @@ def incremental_pca(mean_1, N_1, S_1, P_1, batch_2):
 
     mean_2 = np.average(batch_2,1)
 
-    A_2 = np.subtract(batch_2, mean_2.reshape((-1,1)))
+    A_2 = np.subtract(batch_2, mean_2.reshape(-1,1))
     N_2 = batch_2.shape[1]
     N = N_1 + N_2
     S_2 = np.matmul(A_2, A_2.transpose()) / N_2
@@ -69,7 +69,7 @@ data_subsets, label_subsets = split_training_set(data_train, label_train, N_SUBS
 
 # incremental PCA
 mean = np.average(data_subsets[0],1)
-A = np.subtract(data_subsets[0], mean.reshape((-1,1)))
+A = np.subtract(data_subsets[0], mean.reshape(-1,1))
 N = data_subsets[0].shape[1]
 S = np.matmul(A, A.transpose()) / N
 eig_val, eig_vec = solve_eig(S)
@@ -77,20 +77,20 @@ eig_val, eig_vec = solve_eig(S)
 for i in range(1,N_SUBSETS):
     eig_val, eig_vec, mean, N, S = incremental_pca(mean, N, S, eig_vec, data_subsets[i])
 
-A = np.subtract(data_train, mean.reshape((-1,1)))
+A = np.subtract(data_train, mean.reshape(-1,1))
 
 
 # # batch PCA
 # data = data_train
 # mean_batch = np.average(data,1)
-# A = np.subtract(data, mean_batch.reshape((-1,1)))
+# A = np.subtract(data, mean_batch.reshape(-1,1))
 # S = np.matmul(A, A.transpose()) / data.shape[1]
 # eig_val_batch, eig_vec_batch = solve_eig(S)
 
 # # PCA with only first subset
 # data = data_subsets[0]
 # mean_first = np.average(data,1)
-# A = np.subtract(data, mean_first.reshape((-1,1)))
+# A = np.subtract(data, mean_first.reshape(-1,1))
 # S = np.matmul(A, A.transpose()) / data.shape[1]
 # eig_val_first, eig_vec_first = solve_eig(S)
 
@@ -115,7 +115,7 @@ print("incremental time is ", ELAPSED_TIME_INCREMENTAL)
 # for m in tqdm(range(eig_val.shape[0])):
 #     weight = np.matmul(A.transpose(), eig_vec[:,:m])
 
-#     A_test = np.subtract(data_test, mean.reshape((-1,1)))
+#     A_test = np.subtract(data_test, mean.reshape(-1,1))
 #     weight_test = np.matmul(A_test.transpose(), eig_vec[:,:m])
 
 #     count = 0
@@ -130,7 +130,7 @@ print("incremental time is ", ELAPSED_TIME_INCREMENTAL)
 # for m in tqdm(range(eig_val_batch.shape[0])):
 #     weight = np.matmul(A.transpose(), eig_vec_batch[:,:m])
 
-#     A_test = np.subtract(data_test, mean_batch.reshape((-1,1)))
+#     A_test = np.subtract(data_test, mean_batch.reshape(-1,1))
 #     weight_test = np.matmul(A_test.transpose(), eig_vec_batch[:,:m])
 
 #     count = 0
@@ -145,7 +145,7 @@ print("incremental time is ", ELAPSED_TIME_INCREMENTAL)
 # for m in tqdm(range(eig_val_first.shape[0])):
 #     weight = np.matmul(A.transpose(), eig_vec_first[:,:m])
 
-#     A_test = np.subtract(data_test, mean_first.reshape((-1,1)))
+#     A_test = np.subtract(data_test, mean_first.reshape(-1,1))
 #     weight_test = np.matmul(A_test.transpose(), eig_vec_first[:,:m])
 
 #     count = 0

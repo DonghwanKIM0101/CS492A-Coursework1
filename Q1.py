@@ -30,14 +30,14 @@ def solve_eig(S):
 
 mat = scipy.io.loadmat('face.mat')
 data_train, _ , data_test, _ = split(mat, TEST_NUMBER)
-data = data_train.reshape((WIDTH,HEIGHT,-1))
+data = data_train.reshape(WIDTH,HEIGHT,-1)
 data = np.transpose(data, (1,0,2))
 
 mean_image = np.uint8(np.average(data,2))
 mean_flatten = np.average(data_train,1)
 # cv2.imwrite('mean_image.jpg', np.uint8(mean_image))
 
-A = np.subtract(data_train, mean_flatten.reshape((-1,1)))
+A = np.subtract(data_train, mean_flatten.reshape(-1,1))
 S = np.matmul(A, A.transpose()) / data_train.shape[1]
 S_low = np.matmul(A.transpose(), A) / data_train.shape[1]
 
@@ -79,14 +79,14 @@ eig_vec_low_ /= np.linalg.norm(eig_vec_low_,axis=0,keepdims=True)
 # weight_low = np.matmul(phi.reshape(1,-1), eig_vec_low_[:,:M])
 # face_recon_low = mean_flatten + np.matmul(eig_vec_low_[:,:M], weight_low.transpose()).squeeze()
 
-# face_recon = face_recon.reshape((WIDTH,HEIGHT))
+# face_recon = face_recon.reshape(WIDTH,HEIGHT)
 # face_recon = face_recon.transpose()
 
-# face_recon_low = face_recon_low.reshape((WIDTH,HEIGHT))
+# face_recon_low = face_recon_low.reshape(WIDTH,HEIGHT)
 # face_recon_low = face_recon_low.transpose()
 
 # cv2.imshow("mean face", mean_image)
-# cv2.imshow("original", data_test[:,INDEX].reshape((WIDTH,HEIGHT)).transpose())
+# cv2.imshow("original", data_test[:,INDEX].reshape(WIDTH,HEIGHT).transpose())
 
 # cv2.imshow("face reconstruction", np.uint8(face_recon))
 # cv2.imshow("face reconstruction low", np.uint8(face_recon_low))
@@ -100,7 +100,7 @@ eig_vec_low_ /= np.linalg.norm(eig_vec_low_,axis=0,keepdims=True)
 # for index in INDICES:
 #     phi = data_test[:,index] - mean_flatten
 
-#     cv2.imwrite("../Figure/original/original_%d.jpg"%index, data_test[:,index].reshape((WIDTH,HEIGHT)).transpose())
+#     cv2.imwrite("../Figure/original/original_%d.jpg"%index, data_test[:,index].reshape(WIDTH,HEIGHT).transpose())
 
 #     for m in BASES:
 #         print("PCA on bases, %d and index, %d ..."%(m, index))
@@ -111,8 +111,8 @@ eig_vec_low_ /= np.linalg.norm(eig_vec_low_,axis=0,keepdims=True)
 #         weight_low = np.matmul(phi.reshape(1,-1), eig_vec_low_[:,:m])
 #         face_recon_low = mean_flatten + np.matmul(eig_vec_low_[:,:m], weight_low.transpose()).squeeze()
 
-#         face_recon_original = face_recon_original.reshape((WIDTH,HEIGHT)).transpose()
-#         face_recon_low = face_recon_low.reshape((WIDTH,HEIGHT)).transpose()
+#         face_recon_original = face_recon_original.reshape(WIDTH,HEIGHT).transpose()
+#         face_recon_low = face_recon_low.reshape(WIDTH,HEIGHT).transpose()
 
 #         cv2.imwrite("../Figure/test/test_%d_original_%d_%d.jpg"%(TEST_NUMBER, m, index), np.uint8(face_recon_original))
 #         cv2.imwrite("../Figure/test/test_%d_low_%d_%d.jpg"%(TEST_NUMBER, m, index), np.uint8(face_recon_low))
