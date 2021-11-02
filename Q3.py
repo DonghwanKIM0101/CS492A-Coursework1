@@ -3,10 +3,13 @@ import scipy.linalg
 import numpy as np
 import cv2
 import matplotlib.pyplot as plt
+from tqdm import tqdm
+import psutil
+import os
+import time
 
 from train_test_split import split
 
-M = 100
 Mpca = 364
 Mlda = 51
 
@@ -14,6 +17,13 @@ INDEX = 8 # image to reconstruct
 WIDTH = 46
 HEIGHT = 56
 TEST_NUMBER = 2
+
+start_time = time.time()
+# pid = os.getpid()
+# current_process = psutil.Process(pid)
+# current_process_memory_usage_as_KB = current_process.memory_info()[0] / 2.**20
+# print(f"BEFORE CODE: Current memory KB   : {current_process_memory_usage_as_KB: 9.3f} KB")
+
 
 def solve_eig(S):
     eig_val, eig_vec = np.linalg.eigh(S)
@@ -77,11 +87,18 @@ Wpca = eig_vec_st[:, :Mpca]
 sw_pca = np.matmul(np.matmul(Wpca.transpose(), sw), Wpca)
 sb_pca = np.matmul(np.matmul(Wpca.transpose(), sb), Wpca)
 
-eig_val_LDA, eig_vec_LDA = solve_eig(np.divide(sb_pca, sw_pca))
+# eig_val_LDA, eig_vec_LDA = solve_eig(np.divide(sb_pca, sw_pca))
+eig_val_LDA, eig_vec_LDA = solve_eig(np.matmul(np.linalg.inv(sw_pca), sb_pca))
 Wlda = eig_vec_LDA[:, :Mlda]
 
 #Wopt
 Wopt = np.matmul(Wpca, Wlda)
+
+print("elasped time is ", time.time() - start_time)
+# pid = os.getpid()
+# current_process = psutil.Process(pid)
+# current_process_memory_usage_as_KB = current_process.memory_info()[0] / 2.**20
+# print(f"AFTER  CODE: Current memory KB   : {current_process_memory_usage_as_KB: 9.3f} KB")
 
 #First fisher faces
 plt.imshow(Wopt[:,1].reshape((WIDTH,HEIGHT)).transpose(), cmap = 'gist_gray')
@@ -90,15 +107,27 @@ plt.show()
 plt.plot(eig_val_LDA)
 plt.show()
 
-#face reconstruction
-phi = data_test[:,INDEX] - mean_flatten
+# # face recognition accuracy
+# Accuracies = []
 
-weight = np.matmul(phi.reshape(1,-1), Wopt)
+# A = np.subtract(data_train, mean_flatten.reshape(-1,1))
+# for m in tqdm(range(Mlda)):
+#     Wlda = eig_vec_LDA[:, :m]
+#     Wopt = np.matmul(Wpca, Wlda)
 
-face_recon = mean_flatten + np.matmul(Wopt, weight.transpose()).squeeze()
+#     weight = np.matmul(A.transpose(), Wopt)
 
-face_recon = face_recon.reshape(WIDTH,HEIGHT)
-face_recon = face_recon.transpose()
+#     A_test = np.subtract(data_test, mean_flatten.reshape(-1,1))
+#     weight_test = np.matmul(A_test.transpose(), Wopt)
 
-cv2.imshow("face recon", np.uint8(face_recon))
-cv2.waitKey(0)
+#     count = 0
+#     for i, test in enumerate(weight_test):
+#         error = np.subtract(test.reshape(1,-1), weight)
+        
+#         error = np.linalg.norm(error, axis=1)
+#         count += int(label_train[:,np.argmin(error)] == label_test[:,i])
+
+#     Accuracies.append(count / weight_test.shape[0])
+
+# plt.plot(Accuracies)
+# plt.show()
