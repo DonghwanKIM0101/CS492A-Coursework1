@@ -132,7 +132,40 @@ switch MODE
         disp('Encoding Images...')
         % Vector Quantisation
         [KmeansIdx, C] = kmeans(desc_sel', numBins);
-        disp(size(C))
+
+        for c = 1:3
+            subFolderName = fullfile(folderName,classList{c});
+            imgList = dir(fullfile(subFolderName,'*.jpg'));
+            imgIdx_tr = imgIdx{c}(1:imgSel(1));
+            imgIdx_te = imgIdx{c}(imgSel(1)+1:sum(imgSel));
+            
+            for i = 1:2
+                I = imread(fullfile(subFolderName,imgList(imgIdx_tr(i)).name));
+                
+                % Visualise
+                imshow(I);
+                
+                histogram_tr = [];
+                for j = 1:size(desc_tr{c,i},2)
+                    diff = double(desc_tr{c,i}(:,j)') - C;
+                    error = vecnorm(diff');
+                    [min_error, min_idx] = min(error,[],2);
+                    histogram_tr(j) = KmeansIdx(min_idx);
+                end
+
+                figure
+                histogram(histogram_tr, numBins)
+                title(sprintf('histogram of class %d, %dth image', c, i))
+            end
+        end
+        
+%         [KmeansIdx, C] = kmeans(desc_sel', numBins);
+%         for i = 1:length(desc_sel)
+%             diff = desc_sel(:,i)' - C;
+%             [min_diff, min_idx] = min(diff,[],1);
+%             
+%         end
+        
 
         % write your own codes here
         % ...
