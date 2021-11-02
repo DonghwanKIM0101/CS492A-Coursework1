@@ -1,3 +1,4 @@
+
 % This script aims to help the student in understanding the main ideas behind
 % random forests and how they can be implemented, being a tool to help the
 % on their first coursework on "Selected Topics in Computer Vision" 2018-2019.
