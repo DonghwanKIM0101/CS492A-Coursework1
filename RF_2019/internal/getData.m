@@ -132,30 +132,33 @@ switch MODE
         disp('Encoding Images...')
         % Vector Quantisation
         [KmeansIdx, C] = kmeans(desc_sel', numBins);
+        histogram_tr = zeros(length(classList)*length(imgIdx_tr),numBins);
+        cnt = 1;
 
-        for c = 3:5
+        for c = 1:length(classList)
             subFolderName = fullfile(folderName,classList{c});
             imgList = dir(fullfile(subFolderName,'*.jpg'));
             imgIdx_tr = imgIdx{c}(1:imgSel(1));
             
-            for i = 1:2
+            for i = 1:length(imgIdx_tr)
                 I = imread(fullfile(subFolderName,imgList(imgIdx_tr(i)).name));
                 
-                % Visualise
-                figure('Name', sprintf('train: class %d, %dth image', c, i), 'NumberTitle', 'off');
-                imshow(I);
+%                 % Visualise
+%                 figure('Name', sprintf('train: class %d, %dth image', c, i), 'NumberTitle', 'off');
+%                 imshow(I);
                 
-                histogram_tr = [];
                 for j = 1:size(desc_tr{c,i},2)
                     diff = double(desc_tr{c,i}(:,j)') - C;
                     error = vecnorm(diff');
                     [~, min_idx] = min(error,[],2);
-                    histogram_tr(j) = KmeansIdx(min_idx);
+                    histogram_tr(cnt,min_idx) = histogram_tr(cnt,min_idx) + 1;
                 end
 
-                figure('Name', sprintf('train: histogram of class %d, %dth image', c, i), 'NumberTitle', 'off');
-                histogram(histogram_tr, numBins)
-                ylabel("Frequency")
+%                 figure('Name', sprintf('train: histogram of class %d, %dth image', c, i), 'NumberTitle', 'off');
+%                 histogram(histogram_tr, numBins)
+%                 ylabel("Frequency")
+                disp(cnt)
+                cnt = cnt + 1;
             end
         end
 
@@ -206,32 +209,38 @@ switch MODE
 %         end
 
         % Quantisation
-        
-        for c = 3:5
+        histogram_te = zeros(length(classList)*length(imgIdx_te),numBins);
+        cnt = 1;
+
+        for c = 1:length(classList)
             subFolderName = fullfile(folderName,classList{c});
             imgList = dir(fullfile(subFolderName,'*.jpg'));
             imgIdx_te = imgIdx{c}(imgSel(1)+1:sum(imgSel));
             
-            for i = 1:2
+            for i = 1:length(imgIdx_te)
                 I = imread(fullfile(subFolderName,imgList(imgIdx_te(i)).name));
                 
-                % Visualise
-                figure('Name', sprintf('test: class %d, %dth image', c, i), 'NumberTitle', 'off');
-                imshow(I);
+%                 % Visualise
+%                 figure('Name', sprintf('test: class %d, %dth image', c, i), 'NumberTitle', 'off');
+%                 imshow(I);
                 
-                histogram_te = [];
                 for j = 1:size(desc_te{c,i},2)
                     diff = double(desc_te{c,i}(:,j)') - C;
                     error = vecnorm(diff');
                     [~, min_idx] = min(error,[],2);
-                    histogram_te(j) = KmeansIdx(min_idx);
+                    histogram_te(cnt,min_idx) = histogram_te(cnt,min_idx) + 1;
                 end
 
-                figure('Name', sprintf('test: histogram of class %d, %dth image', c, i), 'NumberTitle', 'off');
-                histogram(histogram_te, numBins)
-                ylabel("Frequency")
+%                 figure('Name', sprintf('test: histogram of class %d, %dth image', c, i), 'NumberTitle', 'off');
+%                 histogram(histogram_te, numBins)
+%                 ylabel("Frequency")
+                disp(cnt)
+                cnt = cnt + 1;
             end
         end
+
+        save('imgIdx.mat', 'imgIdx')
+        save(sprintf('histogram_%d.mat', numBins), 'histogram_tr', 'histogram_te');    
 
         % write your own codes here
         % ...
