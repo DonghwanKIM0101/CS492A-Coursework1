@@ -1,3 +1,4 @@
+from random import random
 import scipy.io
 import scipy.linalg
 import numpy as np
@@ -10,6 +11,9 @@ import time
 
 from train_test_split import split
 
+ENSEMBLE = True
+M0 = 100
+M1 = 50
 Mpca = 364
 Mlda = 51
 
@@ -81,7 +85,12 @@ st = sb + sw
 
 #Perform PCA to get Wpca with Mpca = 364 (=416-52)
 eig_val_st, eig_vec_st = solve_eig(st)
-Wpca = eig_vec_st[:, :Mpca]
+if ENSEMBLE:
+    random_idx = np.random.choice(data_train.shape[1] - 1 - M0 , M1, replace=False)
+    random_idx = np.sort(random_idx) + M0
+    Wpca = np.concatenate((eig_vec_st[:, :M0], eig_vec_st[:, random_idx]), axis=1)
+else:
+    Wpca = eig_vec_st[:, :Mpca]
 
 #reduced sw and sb by the PCA
 sw_pca = np.matmul(np.matmul(Wpca.transpose(), sw), Wpca)
@@ -100,12 +109,13 @@ print("elasped time is ", time.time() - start_time)
 # current_process_memory_usage_as_KB = current_process.memory_info()[0] / 2.**20
 # print(f"AFTER  CODE: Current memory KB   : {current_process_memory_usage_as_KB: 9.3f} KB")
 
-#First fisher faces
-plt.imshow(Wopt[:,1].reshape((WIDTH,HEIGHT)).transpose(), cmap = 'gist_gray')
-plt.show()
 
-plt.plot(eig_val_LDA)
-plt.show()
+# #First fisher faces
+# plt.imshow(Wopt[:,1].reshape((WIDTH,HEIGHT)).transpose(), cmap = 'gist_gray')
+# plt.show()
+
+# plt.plot(eig_val_LDA)
+# plt.show()
 
 # # face recognition accuracy
 # Accuracies = []
