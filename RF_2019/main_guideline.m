@@ -126,7 +126,8 @@ visualise_splitfunc(idx_best,data_train(idx,:),dim_best,t_best,ig_best,0);
 %% 2.2.2 Growing the rest of the tree
 % Let's set some parameters...
 param.depth = 5;        % Tree depth
-param.split = 'IG';     % Currently support 'information gain' only% 
+param.split = 'IG';     % Currently support 'information gain' only
+param.weak_learner = 'axis-aligned'; % Currently support 'axis-aligned', 'two-pixel'
 
 % Initialise base node
 trees(T).node(1) = struct('idx',idx,'t',nan,'dim',-1,'prob',[]);
@@ -148,6 +149,7 @@ param.num = 50;         % Number of trees
 param.depth = 6;        % Depth of each tree
 param.splitNum = 10;     % Number of trials in split function
 param.split = 'IG';     % Currently support 'information gain' only
+param.weak_learner = 'axis-aligned'; % Currently support 'axis-aligned', 'two-pixel'
 
 trees = growTrees(data_train,param);
 
@@ -207,6 +209,7 @@ for N = [1,3,5,10,20] % Number of trees, try {1,3,5,10, or 20}
     param.depth = 5;    % trees depth
     param.splitNum = 10; % Number of trials in split function
     param.split = 'IG'; % Currently support 'information gain' only
+    param.weak_learner = 'axis-aligned'; % Currently support 'axis-aligned', 'two-pixel'
   
 
     % Select dataset
@@ -231,6 +234,7 @@ for N = [2,5,7,11] % Tree depth, try {2,5,7,11}
     param.depth = N;    % trees depth
     param.splitNum = 10; % Number of trials in split function
     param.split = 'IG'; % Currently support 'information gain' only
+    param.weak_learner = 'axis-aligned'; % Currently support 'axis-aligned', 'two-pixel'
 
     % Select dataset
     [data_train, data_test] = getData('Toy_Spiral'); % {'Toy_Gaussian', 'Toy_Spiral', 'Toy_Circle', 'Caltech'}
@@ -250,12 +254,37 @@ end
 %% 5. Experiment with Caltech dataset for image categorisation (Coursework 1)
 
 param.num = 10;
-param.depth = 10;    % trees depth
-param.splitNum = 3; % Number of trials in split function
-param.split = 'IG'; % Currently support 'information gain' only
+param.depth = 10;                       % trees depth
+param.splitNum = 3;                     % Number of trials in split function
+param.split = 'IG';                     % Currently support 'information gain' only
+param.weak_learner = 'two-pixel';    % Currently support 'axis-aligned', 'two-pixel'
 
 % Complete getData.m by writing your own lines of code to obtain the visual 
 % vocabulary and the bag-of-words histograms for both training and testing data. 
 % You can use any existing code for K-means (note different codes require different memory and computation time).
 
-[data_train, data_test] = getData('Caltech');
+% [data_train, data_test] = getData('Caltech');
+
+load('histogram_256.mat')
+
+data_train = histogram_tr;
+data_test = histogram_te;
+label_train = ones(150,1);
+label_test = ones(150,1);
+
+for i = 1:10
+    label_train((i-1) * 15 + 1:i * 15) = i;
+    label_test((i-1) * 15 + 1:i * 15) = i;
+end
+
+data_train(:,size(data_train,2)+1) = label_train;
+data_test(:,size(data_test,2)+1) = label_test;
+
+trees = growTrees(data_train,param);
+
+% Test Random Forest
+testTrees_script;
+
+% Visualise
+C = confusionmat(data_test(:,end)',c);
+confusionchart(C)
