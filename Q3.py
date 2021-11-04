@@ -11,11 +11,15 @@ import time
 
 from train_test_split import split
 
-ENSEMBLE = True
-M0 = 100
-M1 = 50
 Mpca = 364
 Mlda = 51
+
+ENSEMBLE = False
+T = 10 # the number of random feature subspace
+M0 = 100
+M1 = Mpca - M0
+FUSION = 'sum'
+# FUSION = 'majority_voting'
 
 INDEX = 8 # image to reconstruct
 WIDTH = 46
@@ -52,6 +56,21 @@ def scatter(data):
     return S
 
 
+def pca_lda(Wpca, sw, sb):
+    #reduced sw and sb by the PCA
+    sw_pca = np.matmul(np.matmul(Wpca.transpose(), sw), Wpca)
+    sb_pca = np.matmul(np.matmul(Wpca.transpose(), sb), Wpca)
+
+    # eig_val_LDA, eig_vec_LDA = solve_eig(np.divide(sb_pca, sw_pca))
+    eig_val_LDA, eig_vec_LDA = solve_eig(np.matmul(np.linalg.inv(sw_pca), sb_pca))
+    Wlda = eig_vec_LDA[:, :Mlda]
+    
+    #Wopt
+    Wopt = np.matmul(Wpca, Wlda)
+
+    return Wopt, eig_vec_LDA
+
+
 mat = scipy.io.loadmat('face.mat')
 data_train, label_train , data_test, label_test = split(mat, TEST_NUMBER)
 data = data_train.reshape((WIDTH,HEIGHT,-1))
@@ -85,23 +104,20 @@ st = sb + sw
 
 #Perform PCA to get Wpca with Mpca = 364 (=416-52)
 eig_val_st, eig_vec_st = solve_eig(st)
+
+feature_subspaces = []
 if ENSEMBLE:
-    random_idx = np.random.choice(data_train.shape[1] - 1 - M0 , M1, replace=False)
-    random_idx = np.sort(random_idx) + M0
-    Wpca = np.concatenate((eig_vec_st[:, :M0], eig_vec_st[:, random_idx]), axis=1)
+    for i in range(T):
+        random_idx = np.random.choice(data_train.shape[1] - 1 - M0 , M1, replace=False)
+        random_idx = np.sort(random_idx) + M0
+        Wpca = np.concatenate((eig_vec_st[:, :M0], eig_vec_st[:, random_idx]), axis=1)
+        Wopt, eig_vec_LDA = pca_lda(Wpca, sw, sb)
+        feature_subspaces.append(eig_vec_LDA)
+
 else:
     Wpca = eig_vec_st[:, :Mpca]
-
-#reduced sw and sb by the PCA
-sw_pca = np.matmul(np.matmul(Wpca.transpose(), sw), Wpca)
-sb_pca = np.matmul(np.matmul(Wpca.transpose(), sb), Wpca)
-
-# eig_val_LDA, eig_vec_LDA = solve_eig(np.divide(sb_pca, sw_pca))
-eig_val_LDA, eig_vec_LDA = solve_eig(np.matmul(np.linalg.inv(sw_pca), sb_pca))
-Wlda = eig_vec_LDA[:, :Mlda]
-
-#Wopt
-Wopt = np.matmul(Wpca, Wlda)
+    Wopt, eig_vec_LDA = pca_lda(Wpca, sw, sb)
+    feature_subspaces.append(eig_vec_LDA)
 
 print("elasped time is ", time.time() - start_time)
 # pid = os.getpid()
@@ -122,22 +138,28 @@ print("elasped time is ", time.time() - start_time)
 
 # A = np.subtract(data_train, mean_flatten.reshape(-1,1))
 # for m in tqdm(range(Mlda)):
-#     Wlda = eig_vec_LDA[:, :m]
-#     Wopt = np.matmul(Wpca, Wlda)
-
-#     weight = np.matmul(A.transpose(), Wopt)
-
 #     A_test = np.subtract(data_test, mean_flatten.reshape(-1,1))
-#     weight_test = np.matmul(A_test.transpose(), Wopt)
 
-#     count = 0
-#     for i, test in enumerate(weight_test):
-#         error = np.subtract(test.reshape(1,-1), weight)
-        
-#         error = np.linalg.norm(error, axis=1)
-#         count += int(label_train[:,np.argmin(error)] == label_test[:,i])
 
-#     Accuracies.append(count / weight_test.shape[0])
+# face recognition accuracy for various Mlda (not ENSEMBLE)
+Accuracies = []
 
-# plt.plot(Accuracies)
-# plt.show()
+A = np.subtract(data_train, mean_flatten.reshape(-1,1))
+for m in tqdm(range(Mlda)):
+    Wlda = eig_vec_LDA[:, :m]
+    Wopt = np.matmul(Wpca, Wlda)
+
+    weight = np.matmul(A.transpose(), Wopt)
+
+    A_test = np.subtract(data_test, mean_flatten.reshape(-1,1))
+    weight_test = np.matmul(A_test.transpose(), Wopt)
+
+    weight_test_expanded = weight_test.reshape(weight_test.shape[0],1,weight_test.shape[1])
+    weight_expanded = weight.reshape(1,weight.shape[0],weight.shape[1])
+    error = np.subtract(weight_test_expanded, weight_expanded)
+    error = np.linalg.norm(error, axis=2)
+
+    Accuracies.append(np.sum(label_train [:,np.argmin(error,axis=1)] == label_test) / weight_test.shape[0])
+
+plt.plot(Accuracies)
+plt.show()
