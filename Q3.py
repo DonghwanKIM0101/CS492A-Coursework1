@@ -8,6 +8,7 @@ from tqdm import tqdm
 import psutil
 import os
 import time
+from sklearn.metrics import confusion_matrix
 
 from train_test_split import split
 
@@ -177,6 +178,15 @@ plt.plot(Accuracies_voting)
 plt.legend(['average accuracy', 'accuracy by "sum"', 'accuracy by "majority-voting"'])
 plt.show()
 
+# confusion_matrix for last model
+confusion_matrix_result =  confusion_matrix(label_test.squeeze(), voting_result.squeeze(), normalize='all')
+plt.imshow(confusion_matrix_result)
+plt.show()
+
+confusion_matrix_result =  confusion_matrix(label_test.squeeze(), label_train[:,np.argmin(total_error,axis=1)].squeeze(), normalize='all')
+plt.imshow(confusion_matrix_result)
+plt.show()
+
 # # face recognition accuracy for various Mlda (not ENSEMBLE)
 # Accuracies = []
 
@@ -198,4 +208,9 @@ plt.show()
 #     Accuracies.append(np.sum(label_train[:,np.argmin(error,axis=1)] == label_test) / weight_test.shape[0])
 
 # plt.plot(Accuracies)
+# plt.show()
+
+# # confusion_matrix for last model
+# confusion_matrix_result =  confusion_matrix(label_test.squeeze(), label_train[:,np.argmin(error,axis=1)].squeeze(), normalize='all')
+# plt.imshow(confusion_matrix_result)
 # plt.show()
