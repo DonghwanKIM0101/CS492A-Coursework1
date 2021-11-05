@@ -79,6 +79,7 @@ switch MODE
         
     case 'Caltech' % Caltech dataset
         close all;
+        load('imgIdx.mat', 'imgIdx')
         imgSel = [15 15]; % randomly select 15 images each class without replacement. (For both training & testing)
         folderName = './Caltech_101/101_ObjectCategories';
         classList = dir(folderName);
@@ -94,7 +95,7 @@ switch MODE
         for c = 1:length(classList)
             subFolderName = fullfile(folderName,classList{c});
             imgList = dir(fullfile(subFolderName,'*.jpg'));
-            imgIdx{c} = randperm(length(imgList));
+%             imgIdx{c} = randperm(length(imgList));
             imgIdx_tr = imgIdx{c}(1:imgSel(1));
             imgIdx_te = imgIdx{c}(imgSel(1)+1:sum(imgSel));
             
@@ -167,7 +168,7 @@ switch MODE
   
         
         % Clear unused varibles to save memory
-        clearvars desc_tr desc_sel
+        clearvars desc_sel
 end
 
 switch MODE
@@ -239,8 +240,10 @@ switch MODE
             end
         end
 
-        save('imgIdx.mat', 'imgIdx')
-        save(sprintf('histogram_%d.mat', numBins), 'histogram_tr', 'histogram_te');    
+%         save('imgIdx.mat', 'imgIdx')
+%         save(sprintf('histogram_%d.mat', numBins), 'histogram_tr', 'histogram_te');
+%         save('desc.mat', 'desc_tr', 'desc_te')
+        save('desc_test.mat', 'desc_tr', 'desc_te')
 
         % write your own codes here
         % ...

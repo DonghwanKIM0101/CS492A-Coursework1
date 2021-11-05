@@ -252,12 +252,15 @@ for N = [2,5,7,11] % Tree depth, try {2,5,7,11}
 end
 
 %% 5. Experiment with Caltech dataset for image categorisation (Coursework 1)
-
-param.num = 10;
+clear all;
+param.num = 3;
 param.depth = 10;                       % trees depth
 param.splitNum = 3;                     % Number of trials in split function
 param.split = 'IG';                     % Currently support 'information gain' only
-param.weak_learner = 'two-pixel';    % Currently support 'axis-aligned', 'two-pixel'
+param.weak_learner = 'axis-aligned';    % Currently support 'axis-aligned', 'two-pixel'
+% param.weak_learner = 'two-pixel';       % Currently support 'axis-aligned', 'two-pixel'
+% descriptor_mode = 'K-means';            % Currently support 'K-means', 'RF-codebook'
+descriptor_mode = 'RF-codebook';        % Currently support 'K-means', 'RF-codebook'
 
 % Complete getData.m by writing your own lines of code to obtain the visual 
 % vocabulary and the bag-of-words histograms for both training and testing data. 
@@ -265,20 +268,39 @@ param.weak_learner = 'two-pixel';    % Currently support 'axis-aligned', 'two-pi
 
 % [data_train, data_test] = getData('Caltech');
 
-load('histogram_256.mat')
-
-data_train = histogram_tr;
-data_test = histogram_te;
 label_train = ones(150,1);
 label_test = ones(150,1);
-
 for i = 1:10
     label_train((i-1) * 15 + 1:i * 15) = i;
     label_test((i-1) * 15 + 1:i * 15) = i;
 end
 
-data_train(:,size(data_train,2)+1) = label_train;
-data_test(:,size(data_test,2)+1) = label_test;
+if strcmp(descriptor_mode, 'K-means')
+    % RF with K-means
+    load('histogram_256.mat')
+    data_train = histogram_tr;
+    data_test = histogram_te;
+    data_train(:,size(data_train,2)+1) = label_train;
+    data_test(:,size(data_test,2)+1) = label_test;
+end
+
+if strcmp(descriptor_mode, 'RF-codebook')
+    % RF with RF-codebook
+    load('desc_test.mat')
+    data_train = [];
+    data_test = [];
+    for c = 1:10
+        desc_train = cat(2, desc_tr{c,:});
+        desc_train_label = [desc_train; c .* ones(1,size(desc_train,2))];
+        data_train = [data_train; desc_train_label'];
+    end
+    for c = 1:10
+        for i = 1:15
+            desc_test = desc_te{c,i};
+            data_test{c,i} = [desc_te{c,i}; c.*ones(1,size(desc_te{c,i},2))]';
+        end
+    end
+end
 
 trees = growTrees(data_train,param);
 
@@ -286,5 +308,5 @@ trees = growTrees(data_train,param);
 testTrees_script;
 
 % Visualise
-C = confusionmat(data_test(:,end)',c);
+C = confusionmat(label_test',classification_result);
 confusionchart(C)
