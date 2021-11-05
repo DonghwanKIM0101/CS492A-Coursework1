@@ -203,6 +203,7 @@ visualise(data_train,p_rf_all,[],0);
 %% 4.1 Number of trees
 
 init ;
+descriptor_mode = 'K-means';            % Currently support 'K-means', 'RF-codebook'
 
 for N = [1,3,5,10,20] % Number of trees, try {1,3,5,10, or 20}
     param.num = N;
@@ -229,6 +230,7 @@ end
 %% 4.2 Depth of trees
 
 init;
+descriptor_mode = 'K-means';            % Currently support 'K-means', 'RF-codebook'
 for N = [2,5,7,11] % Tree depth, try {2,5,7,11}
     param.num = 10;
     param.depth = N;    % trees depth
@@ -253,9 +255,9 @@ end
 
 %% 5. Experiment with Caltech dataset for image categorisation (Coursework 1)
 clear all;
-param.num = 3;
-param.depth = 10;                       % trees depth
-param.splitNum = 3;                     % Number of trials in split function
+param.num = 5;
+param.depth = 20;                       % trees depth
+param.splitNum = 5;                     % Number of trials in split function
 param.split = 'IG';                     % Currently support 'information gain' only
 param.weak_learner = 'axis-aligned';    % Currently support 'axis-aligned', 'two-pixel'
 % param.weak_learner = 'two-pixel';       % Currently support 'axis-aligned', 'two-pixel'
@@ -286,20 +288,24 @@ end
 
 if strcmp(descriptor_mode, 'RF-codebook')
     % RF with RF-codebook
-    load('desc_test.mat')
+    load('desc.mat')
     data_train = [];
     data_test = [];
     for c = 1:10
         desc_train = cat(2, desc_tr{c,:});
         desc_train_label = [desc_train; c .* ones(1,size(desc_train,2))];
         data_train = [data_train; desc_train_label'];
+
+        desc_test = cat(2, desc_te{c,:});
+        desc_test_label = [desc_test; c .* ones(1,size(desc_test,2))];
+        data_test = [data_test; desc_test_label'];
     end
-    for c = 1:10
-        for i = 1:15
-            desc_test = desc_te{c,i};
-            data_test{c,i} = [desc_te{c,i}; c.*ones(1,size(desc_te{c,i},2))]';
-        end
-    end
+%     for c = 1:10
+%         for i = 1:15
+%             desc_test = desc_te{c,i};
+%             data_test{c,i} = [desc_te{c,i}; c.*ones(1,size(desc_te{c,i},2))]';
+%         end
+%     end
 end
 
 trees = growTrees(data_train,param);
