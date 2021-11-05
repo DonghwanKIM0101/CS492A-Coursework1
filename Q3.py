@@ -14,12 +14,10 @@ from train_test_split import split
 Mpca = 364
 Mlda = 51
 
-ENSEMBLE = False
+ENSEMBLE = True
 T = 10 # the number of random feature subspace
 M0 = 100
 M1 = Mpca - M0
-FUSION = 'sum'
-# FUSION = 'majority_voting'
 
 INDEX = 8 # image to reconstruct
 WIDTH = 46
@@ -133,33 +131,71 @@ print("elasped time is ", time.time() - start_time)
 # plt.plot(eig_val_LDA)
 # plt.show()
 
-# # face recognition accuracy
+# face recognition accuracy
+Accuracies_average = []
+Accuracies_sum = []
+Accuracies_voting = []
+
+A = np.subtract(data_train, mean_flatten.reshape(-1,1))
+for m in tqdm(range(Mlda)):
+    A_test = np.subtract(data_test, mean_flatten.reshape(-1,1))
+
+    # total_result = np.zeros((data_test.shape[1], data_train.shape[1]))
+    # total_result = np.zeros(data_test.shape[1])
+
+    individual_accuracies = np.zeros(T)
+    total_error = np.zeros((data_test.shape[1], data_train.shape[1]))
+    total_result = np.zeros((T, data_test.shape[1]),dtype='int64')
+    voting_result = np.zeros((1,data_test.shape[1]))
+    
+    for i, eig_vec in enumerate(feature_subspaces):
+        Wlda = eig_vec[:,:m]
+        Wopt = np.matmul(Wpca,Wlda)
+
+        weight = np.matmul(A.transpose(), Wopt)
+        weight_test = np.matmul(A_test.transpose(), Wopt)
+
+        weight_test_expanded = weight_test.reshape(weight_test.shape[0],1,weight_test.shape[1])
+        weight_expanded = weight.reshape(1,weight.shape[0],weight.shape[1])
+        error = np.subtract(weight_test_expanded, weight_expanded)
+        error = np.linalg.norm(error, axis=2)
+
+        total_error += error
+        individual_accuracies[i] = np.sum(label_train[:,np.argmin(error,axis=1)] == label_test) / weight_test.shape[0]
+        total_result[i,:] = label_train[:,np.argmin(error,axis=1)]
+
+    for i in range(data_test.shape[1]):
+        voting_result[0,i] = np.argmax(np.bincount(total_result[:,i]))
+
+    Accuracies_average.append(np.average(individual_accuracies))
+    Accuracies_sum.append(np.sum(label_train[:,np.argmin(total_error,axis=1)] == label_test) / weight_test.shape[0])
+    Accuracies_voting.append(np.sum(voting_result == label_test) / weight_test.shape[0])
+
+plt.plot(Accuracies_average)
+plt.plot(Accuracies_sum)
+plt.plot(Accuracies_voting)
+plt.legend(['average accuracy', 'accuracy by "sum"', 'accuracy by "majority-voting"'])
+plt.show()
+
+# # face recognition accuracy for various Mlda (not ENSEMBLE)
 # Accuracies = []
 
 # A = np.subtract(data_train, mean_flatten.reshape(-1,1))
 # for m in tqdm(range(Mlda)):
+#     Wlda = eig_vec_LDA[:, :m]
+#     Wopt = np.matmul(Wpca, Wlda)
+
+#     weight = np.matmul(A.transpose(), Wopt)
+
 #     A_test = np.subtract(data_test, mean_flatten.reshape(-1,1))
+#     weight_test = np.matmul(A_test.transpose(), Wopt)
 
+#     weight_test_expanded = weight_test.reshape(weight_test.shape[0],1,weight_test.shape[1])
+#     weight_expanded = weight.reshape(1,weight.shape[0],weight.shape[1])
+#     error = np.subtract(weight_test_expanded, weight_expanded)
+#     error = np.linalg.norm(error, axis=2)
 
-# face recognition accuracy for various Mlda (not ENSEMBLE)
-Accuracies = []
+#     Accuracies.append(np.sum(label_train[:,np.argmin(error,axis=1)] == label_test) / weight_test.shape[0])
 
-A = np.subtract(data_train, mean_flatten.reshape(-1,1))
-for m in tqdm(range(Mlda)):
-    Wlda = eig_vec_LDA[:, :m]
-    Wopt = np.matmul(Wpca, Wlda)
-
-    weight = np.matmul(A.transpose(), Wopt)
-
-    A_test = np.subtract(data_test, mean_flatten.reshape(-1,1))
-    weight_test = np.matmul(A_test.transpose(), Wopt)
-
-    weight_test_expanded = weight_test.reshape(weight_test.shape[0],1,weight_test.shape[1])
-    weight_expanded = weight.reshape(1,weight.shape[0],weight.shape[1])
-    error = np.subtract(weight_test_expanded, weight_expanded)
-    error = np.linalg.norm(error, axis=2)
-
-    Accuracies.append(np.sum(label_train [:,np.argmin(error,axis=1)] == label_test) / weight_test.shape[0])
-
-plt.plot(Accuracies)
-plt.show()
+# plt.plot(Accuracies)
+# plt.show()
