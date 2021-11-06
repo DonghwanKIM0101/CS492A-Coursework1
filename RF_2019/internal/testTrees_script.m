@@ -9,8 +9,7 @@ if strcmp(descriptor_mode, 'K-means')
     % average the results from all trees
     p_rf = squeeze(sum(p_rf,3))/length(trees); % Regression
     [~,classification_result] = max(p_rf'); % Regression to Classification
-    accuracy_rf = sum(classification_result==label_test')/length(classification_result); % Classification accuracy (for Caltech dataset)
-    clearvars p_rf
+    accuracy_rf = sum(classification_result==data_test(:,end)')/length(classification_result); % Classification accuracy (for Caltech dataset)
 end
 
 if strcmp(descriptor_mode, 'RF-codebook')

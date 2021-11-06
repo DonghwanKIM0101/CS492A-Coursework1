@@ -255,9 +255,9 @@ end
 
 %% 5. Experiment with Caltech dataset for image categorisation (Coursework 1)
 clear all;
-param.num = 5;
+param.num = 20;
 param.depth = 20;                       % trees depth
-param.splitNum = 5;                     % Number of trials in split function
+param.splitNum = 10;                     % Number of trials in split function
 param.split = 'IG';                     % Currently support 'information gain' only
 param.weak_learner = 'axis-aligned';    % Currently support 'axis-aligned', 'two-pixel'
 % param.weak_learner = 'two-pixel';       % Currently support 'axis-aligned', 'two-pixel'
