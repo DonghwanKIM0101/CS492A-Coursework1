@@ -14,12 +14,12 @@ INDEX = 8 # image to reconstruct
 WIDTH = 46
 HEIGHT = 56
 TEST_NUMBER = 2
+N_SUBSETS = 4
+
 ELAPSED_TIME_SUBSET = 0
 ELAPSED_TIME_INCREMENTAL = 0
 ELAPSED_TIME_PCA_FIRST_SUBSET = 0
 ELAPSED_TIME_BATCH_PCA = 0
-SUBSET_TIME = 0
-N_SUBSETS = 4
 
 def solve_eig(S):
     eig_val, eig_vec = np.linalg.eigh(S)
