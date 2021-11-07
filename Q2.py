@@ -92,8 +92,8 @@ A = np.subtract(data_train, mean.reshape(-1,1))
 # batch PCA
 data = data_train
 mean_batch = np.average(data,1)
-A = np.subtract(data, mean_batch.reshape(-1,1))
-S = np.matmul(A, A.transpose()) / data.shape[1]
+A_batch = np.subtract(data, mean_batch.reshape(-1,1))
+S = np.matmul(A_batch, A_batch.transpose()) / data.shape[1]
 start = time.time()
 eig_val_batch, eig_vec_batch = solve_eig(S)
 ELAPSED_TIME_BATCH_PCA += time.time() - start
@@ -101,8 +101,8 @@ ELAPSED_TIME_BATCH_PCA += time.time() - start
 # PCA with only first subset
 data = data_subsets[0]
 mean_first = np.average(data,1)
-A = np.subtract(data, mean_first.reshape(-1,1))
-S = np.matmul(A, A.transpose()) / data.shape[1]
+A_first = np.subtract(data, mean_first.reshape(-1,1))
+S = np.matmul(A_first, A_first.transpose()) / data.shape[1]
 start = time.time()
 eig_val_first, eig_vec_first = solve_eig(S)
 ELAPSED_TIME_PCA_FIRST_SUBSET += time.time() - start
@@ -113,122 +113,127 @@ print("Batch PCA Training Time        : ", ELAPSED_TIME_BATCH_PCA) #ELAPSED_TIME
 print("First Subset PCA Training Time : ", ELAPSED_TIME_PCA_FIRST_SUBSET) #ELAPSED_TIME = Sum of ELAPSED_TIME_INCREMENTAL
 
 
-# # Plot eigen values.
-# # print(eig_vec.shape)
-# # print(eig_vec_low.shape)
-# plt.plot(eig_val)
-# plt.plot(eig_val_batch)
-# plt.plot(eig_val_first)
+# Plot eigen values.
+# plt.plot(eig_val, label='Incremental PCA')
+# plt.plot(eig_val_batch, label='Batch PCA')
+# plt.plot(eig_val_first, label='PCA with the first subset')
+# plt.legend()
 # plt.show()
 
 
-# # face recognition accuracy
-# Accuracies = []
-# Accuracies_batch = []
-# Accuracies_first = []
+# face recognition accuracy
+Accuracies = []
+Accuracies_batch = []
+Accuracies_first = []
+#incremental PCA
+for m in tqdm(range(eig_val.shape[0])):
+    weight = np.matmul(A.transpose(), eig_vec[:,:m])
 
-# for m in tqdm(range(eig_val.shape[0])):
-#     weight = np.matmul(A.transpose(), eig_vec[:,:m])
+    A_test = np.subtract(data_test, mean.reshape(-1,1))
+    weight_test = np.matmul(A_test.transpose(), eig_vec[:,:m])
 
-#     A_test = np.subtract(data_test, mean.reshape(-1,1))
-#     weight_test = np.matmul(A_test.transpose(), eig_vec[:,:m])
-
-#     count = 0
-#     for i, test in enumerate(weight_test):
-#         error = np.subtract(test.reshape(1,-1), weight)
+    count = 0
+    for i, test in enumerate(weight_test):
+        error = np.subtract(test.reshape(1,-1), weight)
         
-#         error = np.linalg.norm(error, axis=1)
-#         count += int(label_train[:,np.argmin(error)] == label_test[:,i])
+        error = np.linalg.norm(error, axis=1)
+        count += int(label_train[:,np.argmin(error)] == label_test[:,i])
 
-#     Accuracies.append(count / weight_test.shape[0])
+    Accuracies.append(count / weight_test.shape[0])
+#batch PCA
+for m in tqdm(range(eig_val_batch.shape[0])):
+    weight = np.matmul(A_batch.transpose(), eig_vec_batch[:,:m])
 
-# for m in tqdm(range(eig_val_batch.shape[0])):
-#     weight = np.matmul(A.transpose(), eig_vec_batch[:,:m])
+    A_test = np.subtract(data_test, mean_batch.reshape(-1,1))
+    weight_test = np.matmul(A_test.transpose(), eig_vec_batch[:,:m])
 
-#     A_test = np.subtract(data_test, mean_batch.reshape(-1,1))
-#     weight_test = np.matmul(A_test.transpose(), eig_vec_batch[:,:m])
-
-#     count = 0
-#     for i, test in enumerate(weight_test):
-#         error = np.subtract(test.reshape(1,-1), weight)
+    count = 0
+    for i, test in enumerate(weight_test):
+        error = np.subtract(test.reshape(1,-1), weight)
         
-#         error = np.linalg.norm(error, axis=1)
-#         count += int(label_train[:,np.argmin(error)] == label_test[:,i])
+        error = np.linalg.norm(error, axis=1)
+        count += int(label_train[:,np.argmin(error)] == label_test[:,i])
 
-#     Accuracies_batch.append(count / weight_test.shape[0])
+    Accuracies_batch.append(count / weight_test.shape[0])
+#PCA with the first subset
+for m in tqdm(range(eig_val_first.shape[0])):
+    weight = np.matmul(A_first.transpose(), eig_vec_first[:,:m])
 
-# for m in tqdm(range(eig_val_first.shape[0])):
-#     weight = np.matmul(A.transpose(), eig_vec_first[:,:m])
+    A_test = np.subtract(data_test, mean_first.reshape(-1,1))
+    weight_test = np.matmul(A_test.transpose(), eig_vec_first[:,:m])
 
-#     A_test = np.subtract(data_test, mean_first.reshape(-1,1))
-#     weight_test = np.matmul(A_test.transpose(), eig_vec_first[:,:m])
-
-#     count = 0
-#     for i, test in enumerate(weight_test):
-#         error = np.subtract(test.reshape(1,-1), weight)
+    count = 0
+    for i, test in enumerate(weight_test):
+        error = np.subtract(test.reshape(1,-1), weight)
         
-#         error = np.linalg.norm(error, axis=1)
-#         count += int(label_train[:,np.argmin(error)] == label_test[:,i])
+        error = np.linalg.norm(error, axis=1)
+        count += int(label_train[:,np.argmin(error)] == label_test[:,i])
 
-#     Accuracies_first.append(count / weight_test.shape[0])
+    Accuracies_first.append(count / weight_test.shape[0])
 
-# plt.plot(Accuracies)
-# plt.plot(Accuracies_batch)
-# plt.plot(Accuracies_first)
-# plt.show()
+plt.plot(Accuracies, label="Incremental PCA")
+plt.plot(Accuracies_batch, label="Batch PCA")
+plt.plot(Accuracies_first, label="PCA with the first subset")
+plt.xlabel("number of eigenvectors")
+plt.ylabel("Accuracy")
+plt.legend()
+plt.show()
 
 
-# # Quantitatively face reconstruction
-# Errors = []
-# Errors_batch = []
-# Errors_first = []
+# Quantitatively face reconstruction
+Errors = []
+Errors_batch = []
+Errors_first = []
 
-# for m in tqdm(range(eig_val.shape[0])):
-#     error = 0
+for m in tqdm(range(eig_val.shape[0])):
+    error = 0
 
-#     for index in range(data_test.shape[1]):
-#         phi = data_test[:,index] - mean
+    for index in range(data_test.shape[1]):
+        phi = data_test[:,index] - mean
 
-#         weight = np.matmul(phi.reshape(1,-1), eig_vec[:,:m])
+        weight = np.matmul(phi.reshape(1,-1), eig_vec[:,:m])
 
-#         face_recon = mean + np.matmul(eig_vec[:,:m], weight.transpose()).squeeze()
+        face_recon = mean + np.matmul(eig_vec[:,:m], weight.transpose()).squeeze()
 
-#         error += np.linalg.norm(face_recon - data_test[:,index])
+        error += np.linalg.norm(face_recon - data_test[:,index])
     
-#     error /= data_test.shape[1]
-#     Errors.append(error)
+    error /= data_test.shape[1]
+    Errors.append(error)
 
-# for m in tqdm(range(eig_val_batch.shape[0])):
-#     error = 0
+for m in tqdm(range(eig_val_batch.shape[0])):
+    error = 0
 
-#     for index in range(data_test.shape[1]):
-#         phi = data_test[:,index] - mean_batch
+    for index in range(data_test.shape[1]):
+        phi = data_test[:,index] - mean_batch
 
-#         weight = np.matmul(phi.reshape(1,-1), eig_vec_batch[:,:m])
+        weight = np.matmul(phi.reshape(1,-1), eig_vec_batch[:,:m])
 
-#         face_recon = mean_batch + np.matmul(eig_vec_batch[:,:m], weight.transpose()).squeeze()
+        face_recon = mean_batch + np.matmul(eig_vec_batch[:,:m], weight.transpose()).squeeze()
 
-#         error += np.linalg.norm(face_recon - data_test[:,index])
+        error += np.linalg.norm(face_recon - data_test[:,index])
     
-#     error /= data_test.shape[1]
-#     Errors_batch.append(error)
+    error /= data_test.shape[1]
+    Errors_batch.append(error)
 
-# for m in tqdm(range(eig_val_first.shape[0])):
-#     error = 0
+for m in tqdm(range(eig_val_first.shape[0])):
+    error = 0
 
-#     for index in range(data_test.shape[1]):
-#         phi = data_test[:,index] - mean_first
+    for index in range(data_test.shape[1]):
+        phi = data_test[:,index] - mean_first
 
-#         weight = np.matmul(phi.reshape(1,-1), eig_vec_first[:,:m])
+        weight = np.matmul(phi.reshape(1,-1), eig_vec_first[:,:m])
 
-#         face_recon = mean_first + np.matmul(eig_vec_first[:,:m], weight.transpose()).squeeze()
+        face_recon = mean_first + np.matmul(eig_vec_first[:,:m], weight.transpose()).squeeze()
 
-#         error += np.linalg.norm(face_recon - data_test[:,index])
+        error += np.linalg.norm(face_recon - data_test[:,index])
     
-#     error /= data_test.shape[1]
-#     Errors_first.append(error)
+    error /= data_test.shape[1]
+    Errors_first.append(error)
 
-# plt.plot(Errors)
-# plt.plot(Errors_batch)
-# plt.plot(Errors_first)
-# plt.show()
+plt.plot(Errors, label="Incremental PCA")
+plt.plot(Errors_batch, label="Batch PCA")
+plt.plot(Errors_first, label="PCA with the first subset")
+plt.xlabel("number of eigenvectors")
+plt.ylabel("error")
+plt.legend()
+plt.show()
