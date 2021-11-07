@@ -14,15 +14,15 @@ INDEX = 8 # image to reconstruct
 WIDTH = 46
 HEIGHT = 56
 TEST_NUMBER = 2
-ELAPSED_TIME = 0
+ELAPSED_TIME_SUBSET = 0
 ELAPSED_TIME_INCREMENTAL = 0
+ELAPSED_TIME_PCA_FIRST_SUBSET = 0
+ELAPSED_TIME_BATCH_PCA = 0
+SUBSET_TIME = 0
 N_SUBSETS = 4
 
 def solve_eig(S):
-    global ELAPSED_TIME
-    start = time.time()
     eig_val, eig_vec = np.linalg.eigh(S)
-    ELAPSED_TIME += time.time() - start
 
     sorted_eig_val = np.flip(eig_val)
     sorted_eig_vec = np.flip(eig_vec, axis=1)
@@ -35,6 +35,7 @@ def solve_eig(S):
 
 
 def incremental_pca(mean_1, N_1, S_1, P_1, batch_2):
+    global ELAPSED_TIME_SUBSET
     global ELAPSED_TIME_INCREMENTAL
 
     mean_2 = np.average(batch_2,1)
@@ -43,22 +44,26 @@ def incremental_pca(mean_1, N_1, S_1, P_1, batch_2):
     N_2 = batch_2.shape[1]
     N = N_1 + N_2
     S_2 = np.matmul(A_2, A_2.transpose()) / N_2
-    lambda_2, P_2 = solve_eig(S_2)
-
+    ELAPSED_TIME_SUBSET = 0 # initialized to show the time for each subset-increment only
     start = time.time()
+    lambda_2, P_2 = solve_eig(S_2)
+    ELAPSED_TIME_SUBSET += time.time() - start
+
+    #start = time.time()
     mean = (mean_1 * N_1 + mean_2 * N_2) / N
     S = N_1 / N * S_1 + N_2 / N * S_2 + N_1 * N_2 / (N ** 2) * np.matmul((mean_1 - mean_2).reshape(-1,1), (mean_1 - mean_2).reshape(-1,1).transpose())
 
     q, r = np.linalg.qr(np.concatenate((P_1, P_2, (mean_1 - mean_2).reshape(-1,1)), axis=1))
 
     result_S = np.matmul(np.matmul(q.transpose(), S), q)
-    ELAPSED_TIME_INCREMENTAL += time.time() - start
-
-    eig_val, eig_vec = solve_eig(result_S)
+    #ELAPSED_TIME_SUBSET += time.time() - start
 
     start = time.time()
+    eig_val, eig_vec = solve_eig(result_S)
+    ELAPSED_TIME_SUBSET += time.time() - start
+    ELAPSED_TIME_INCREMENTAL += ELAPSED_TIME_SUBSET #update total incremental time
+
     eig_vec = np.matmul(q, eig_vec)
-    ELAPSED_TIME_INCREMENTAL += time.time() - start
 
     return eig_val, eig_vec, mean, N, S
 
@@ -72,31 +77,41 @@ mean = np.average(data_subsets[0],1)
 A = np.subtract(data_subsets[0], mean.reshape(-1,1))
 N = data_subsets[0].shape[1]
 S = np.matmul(A, A.transpose()) / N
+start = time.time()
 eig_val, eig_vec = solve_eig(S)
+ELAPSED_TIME_SUBSET += time.time() - start
+ELAPSED_TIME_INCREMENTAL += ELAPSED_TIME_SUBSET #update total incremental time
+print("with", 1, "-subset time is ", ELAPSED_TIME_SUBSET)
 
 for i in range(1,N_SUBSETS):
     eig_val, eig_vec, mean, N, S = incremental_pca(mean, N, S, eig_vec, data_subsets[i])
+    print("with", i+1, "-subset time is ", ELAPSED_TIME_SUBSET)
 
 A = np.subtract(data_train, mean.reshape(-1,1))
 
+# batch PCA
+data = data_train
+mean_batch = np.average(data,1)
+A = np.subtract(data, mean_batch.reshape(-1,1))
+S = np.matmul(A, A.transpose()) / data.shape[1]
+start = time.time()
+eig_val_batch, eig_vec_batch = solve_eig(S)
+ELAPSED_TIME_BATCH_PCA += time.time() - start
 
-# # batch PCA
-# data = data_train
-# mean_batch = np.average(data,1)
-# A = np.subtract(data, mean_batch.reshape(-1,1))
-# S = np.matmul(A, A.transpose()) / data.shape[1]
-# eig_val_batch, eig_vec_batch = solve_eig(S)
-
-# # PCA with only first subset
-# data = data_subsets[0]
-# mean_first = np.average(data,1)
-# A = np.subtract(data, mean_first.reshape(-1,1))
-# S = np.matmul(A, A.transpose()) / data.shape[1]
-# eig_val_first, eig_vec_first = solve_eig(S)
+# PCA with only first subset
+data = data_subsets[0]
+mean_first = np.average(data,1)
+A = np.subtract(data, mean_first.reshape(-1,1))
+S = np.matmul(A, A.transpose()) / data.shape[1]
+start = time.time()
+eig_val_first, eig_vec_first = solve_eig(S)
+ELAPSED_TIME_PCA_FIRST_SUBSET += time.time() - start
 
 
-print("elasped time is ", ELAPSED_TIME)
-print("incremental time is ", ELAPSED_TIME_INCREMENTAL)
+print("Incremental PCA Training Time  : ", ELAPSED_TIME_INCREMENTAL) #ELAPSED_TIME_INCREMENTAL = Sum of ELAPSED_TIME_SUBSET
+print("Batch PCA Training Time        : ", ELAPSED_TIME_BATCH_PCA) #ELAPSED_TIME = Sum of ELAPSED_TIME_INCREMENTAL
+print("First Subset PCA Training Time : ", ELAPSED_TIME_PCA_FIRST_SUBSET) #ELAPSED_TIME = Sum of ELAPSED_TIME_INCREMENTAL
+
 
 # # Plot eigen values.
 # # print(eig_vec.shape)
