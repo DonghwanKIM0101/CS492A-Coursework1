@@ -121,7 +121,7 @@ print("First Subset PCA Training Time : ", ELAPSED_TIME_PCA_FIRST_SUBSET) #ELAPS
 # plt.show()
 
 
-# face recognition accuracy
+# Face Recognition Accuracy
 Accuracies = []
 Accuracies_batch = []
 Accuracies_first = []
@@ -180,7 +180,7 @@ plt.legend()
 plt.show()
 
 
-# Quantitatively face reconstruction
+# Face Reconstruction Error
 Errors = []
 Errors_batch = []
 Errors_first = []
