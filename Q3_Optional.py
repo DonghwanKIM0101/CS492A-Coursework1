@@ -15,11 +15,12 @@ from train_test_split import split
 Mpca = 364
 Mlda = 51
 
-ENSEMBLE = False
+ENSEMBLE = True
 T = 10 # the number of random feature subspace
 M0 = 100
 M1 = Mpca - M0
 
+INDEX = 8 # image to reconstruct
 WIDTH = 46
 HEIGHT = 56
 TEST_NUMBER = 2

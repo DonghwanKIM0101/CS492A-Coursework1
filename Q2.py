@@ -10,7 +10,6 @@ from train_test_split import split
 from training_set_split import split_training_set
 
 M = 100
-INDEX = 8 # image to reconstruct
 WIDTH = 46
 HEIGHT = 56
 TEST_NUMBER = 2
