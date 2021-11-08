@@ -8,17 +8,13 @@ from tqdm import tqdm
 import psutil
 import os
 import time
+import seaborn as sns
 from sklearn.metrics import confusion_matrix
 
 from train_test_split import split
 
-Mpca = 364
-Mlda = 51
-
-ENSEMBLE = False
-T = 10 # the number of random feature subspace
-M0 = 100
-M1 = Mpca - M0
+Mpca = 364 # Maximum Mpca
+Mlda = 51 # Maximum Mlda
 
 WIDTH = 46
 HEIGHT = 56
@@ -100,116 +96,96 @@ print("is sw singular? :", np.linalg.det(sw) == 0)
 
 st = sb + sw
 
-#Perform PCA to get Wpca with Mpca = 364 (=416-52)
+#Perform PCA
 eig_val_st, eig_vec_st = solve_eig(st)
 
-feature_subspaces = []
-if ENSEMBLE:
-    for i in range(T):
-        random_idx = np.random.choice(data_train.shape[1] - 1 - M0 , M1, replace=False)
-        random_idx = np.sort(random_idx) + M0
-        Wpca = np.concatenate((eig_vec_st[:, :M0], eig_vec_st[:, random_idx]), axis=1)
-        Wopt, eig_vec_LDA = pca_lda(Wpca, sw, sb)
-        feature_subspaces.append(eig_vec_LDA)
-
-else:
-    Wpca = eig_vec_st[:, :Mpca]
-    Wopt, eig_vec_LDA = pca_lda(Wpca, sw, sb)
-    feature_subspaces.append(eig_vec_LDA)
-
-print("elasped time is ", time.time() - start_time)
-# pid = os.getpid()
-# current_process = psutil.Process(pid)
-# current_process_memory_usage_as_KB = current_process.memory_info()[0] / 2.**20
-# print(f"AFTER  CODE: Current memory KB   : {current_process_memory_usage_as_KB: 9.3f} KB")
-
-
-# #First fisher faces
-# plt.imshow(Wopt[:,1].reshape((WIDTH,HEIGHT)).transpose(), cmap = 'gist_gray')
-# plt.show()
-
-# plt.plot(eig_val_LDA)
-# plt.show()
-
-# face recognition accuracy
-Accuracies_average = []
-Accuracies_sum = []
-Accuracies_voting = []
+# face recognition accuracy for various Mpca
+Accuracies = []
 
 A = np.subtract(data_train, mean_flatten.reshape(-1,1))
-for m in tqdm(range(Mlda)):
+
+for m in tqdm(range(Mpca)):
+    #Perform LDA
+    Wpca = eig_vec_st[:, :m]
+    Wopt, eig_vec_LDA = pca_lda(Wpca, sw, sb)
+
+    Wlda = eig_vec_LDA[:, :Mlda]
+    Wopt = np.matmul(Wpca, Wlda)
+
+    weight = np.matmul(A.transpose(), Wopt)
+
     A_test = np.subtract(data_test, mean_flatten.reshape(-1,1))
+    weight_test = np.matmul(A_test.transpose(), Wopt)
 
-    # total_result = np.zeros((data_test.shape[1], data_train.shape[1]))
-    # total_result = np.zeros(data_test.shape[1])
+    weight_test_expanded = weight_test.reshape(weight_test.shape[0],1,weight_test.shape[1])
+    weight_expanded = weight.reshape(1,weight.shape[0],weight.shape[1])
+    error = np.subtract(weight_test_expanded, weight_expanded)
+    error = np.linalg.norm(error, axis=2)
 
-    individual_accuracies = np.zeros(T)
-    total_error = np.zeros((data_test.shape[1], data_train.shape[1]))
-    total_result = np.zeros((T, data_test.shape[1]),dtype='int64')
-    voting_result = np.zeros((1,data_test.shape[1]))
-    
-    for i, eig_vec in enumerate(feature_subspaces):
-        Wlda = eig_vec[:,:m]
-        Wopt = np.matmul(Wpca,Wlda)
+    Accuracies.append(np.sum(label_train[:,np.argmin(error,axis=1)] == label_test) / weight_test.shape[0])
 
-        weight = np.matmul(A.transpose(), Wopt)
-        weight_test = np.matmul(A_test.transpose(), Wopt)
-
-        weight_test_expanded = weight_test.reshape(weight_test.shape[0],1,weight_test.shape[1])
-        weight_expanded = weight.reshape(1,weight.shape[0],weight.shape[1])
-        error = np.subtract(weight_test_expanded, weight_expanded)
-        error = np.linalg.norm(error, axis=2)
-
-        total_error += error
-        individual_accuracies[i] = np.sum(label_train[:,np.argmin(error,axis=1)] == label_test) / weight_test.shape[0]
-        total_result[i,:] = label_train[:,np.argmin(error,axis=1)]
-
-    for i in range(data_test.shape[1]):
-        voting_result[0,i] = np.argmax(np.bincount(total_result[:,i]))
-
-    Accuracies_average.append(np.average(individual_accuracies))
-    Accuracies_sum.append(np.sum(label_train[:,np.argmin(total_error,axis=1)] == label_test) / weight_test.shape[0])
-    Accuracies_voting.append(np.sum(voting_result == label_test) / weight_test.shape[0])
-
-plt.plot(Accuracies_average)
-plt.plot(Accuracies_sum)
-plt.plot(Accuracies_voting)
-plt.legend(['average accuracy', 'accuracy by "sum"', 'accuracy by "majority-voting"'])
+plt.plot(Accuracies)
+plt.xlabel("Mpca")
+plt.ylabel("Accuracy")
 plt.show()
+
+
+# face recognition accuracy for various Mlda
+Accuracies = []
+
+A = np.subtract(data_train, mean_flatten.reshape(-1,1))
+
+#Perform LDA
+Wpca = eig_vec_st[:, :Mpca]
+Wopt, eig_vec_LDA = pca_lda(Wpca, sw, sb)
+
+for m in tqdm(range(Mlda)):
+    Wlda = eig_vec_LDA[:, :m]
+    Wopt = np.matmul(Wpca, Wlda)
+
+    weight = np.matmul(A.transpose(), Wopt)
+
+    A_test = np.subtract(data_test, mean_flatten.reshape(-1,1))
+    weight_test = np.matmul(A_test.transpose(), Wopt)
+
+    weight_test_expanded = weight_test.reshape(weight_test.shape[0],1,weight_test.shape[1])
+    weight_expanded = weight.reshape(1,weight.shape[0],weight.shape[1])
+    error = np.subtract(weight_test_expanded, weight_expanded)
+    error = np.linalg.norm(error, axis=2)
+
+    Accuracies.append(np.sum(label_train[:,np.argmin(error,axis=1)] == label_test) / weight_test.shape[0])
+
+plt.plot(Accuracies)
+plt.xlabel("Mlda")
+plt.ylabel("Accuracy")
+plt.show()
+
+# training base model for consufion matrix
+Wpca = eig_vec_st[:, :Mpca]
+Wopt, eig_vec_LDA = pca_lda(Wpca, sw, sb)
+Wlda = eig_vec_LDA[:, :Mlda]
+Wopt = np.matmul(Wpca, Wlda)
+
+A = np.subtract(data_train, mean_flatten.reshape(-1,1))
+
+weight = np.matmul(A.transpose(), Wopt)
+
+A_test = np.subtract(data_test, mean_flatten.reshape(-1,1))
+weight_test = np.matmul(A_test.transpose(), Wopt)
+
+weight_test_expanded = weight_test.reshape(weight_test.shape[0],1,weight_test.shape[1])
+weight_expanded = weight.reshape(1,weight.shape[0],weight.shape[1])
+error = np.subtract(weight_test_expanded, weight_expanded)
+error = np.linalg.norm(error, axis=2)
+
+accuracy = np.sum(label_train[:,np.argmin(error,axis=1)] == label_test) / weight_test.shape[0]
+
+print("Confusion Matrix Accuracy :", accuracy)
 
 # confusion_matrix for last model
-confusion_matrix_result =  confusion_matrix(label_test.squeeze(), voting_result.squeeze(), normalize='all')
-plt.imshow(confusion_matrix_result)
-plt.show()
-
-confusion_matrix_result =  confusion_matrix(label_test.squeeze(), label_train[:,np.argmin(total_error,axis=1)].squeeze(), normalize='all')
-plt.imshow(confusion_matrix_result)
-plt.show()
-
-# # face recognition accuracy for various Mlda (not ENSEMBLE)
-# Accuracies = []
-
-# A = np.subtract(data_train, mean_flatten.reshape(-1,1))
-# for m in tqdm(range(Mlda)):
-#     Wlda = eig_vec_LDA[:, :m]
-#     Wopt = np.matmul(Wpca, Wlda)
-
-#     weight = np.matmul(A.transpose(), Wopt)
-
-#     A_test = np.subtract(data_test, mean_flatten.reshape(-1,1))
-#     weight_test = np.matmul(A_test.transpose(), Wopt)
-
-#     weight_test_expanded = weight_test.reshape(weight_test.shape[0],1,weight_test.shape[1])
-#     weight_expanded = weight.reshape(1,weight.shape[0],weight.shape[1])
-#     error = np.subtract(weight_test_expanded, weight_expanded)
-#     error = np.linalg.norm(error, axis=2)
-
-#     Accuracies.append(np.sum(label_train[:,np.argmin(error,axis=1)] == label_test) / weight_test.shape[0])
-
-# plt.plot(Accuracies)
-# plt.show()
-
-# # confusion_matrix for last model
-# confusion_matrix_result =  confusion_matrix(label_test.squeeze(), label_train[:,np.argmin(error,axis=1)].squeeze(), normalize='all')
+confusion_matrix_result =  confusion_matrix(label_test.squeeze(), label_train[:,np.argmin(error,axis=1)].squeeze())#, normalize='all')
+# print(confusion_matrix_result)
 # plt.imshow(confusion_matrix_result)
 # plt.show()
+sns.heatmap(confusion_matrix_result, cmap='Reds')
+plt.show()
