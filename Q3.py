@@ -99,6 +99,39 @@ st = sb + sw
 #Perform PCA
 eig_val_st, eig_vec_st = solve_eig(st)
 
+
+
+# training base model for consufion matrix
+Wpca = eig_vec_st[:, :Mpca]
+Wopt, eig_vec_LDA = pca_lda(Wpca, sw, sb)
+Wlda = eig_vec_LDA[:, :Mlda]
+Wopt = np.matmul(Wpca, Wlda)
+
+A = np.subtract(data_train, mean_flatten.reshape(-1,1))
+
+weight = np.matmul(A.transpose(), Wopt)
+
+A_test = np.subtract(data_test, mean_flatten.reshape(-1,1))
+weight_test = np.matmul(A_test.transpose(), Wopt)
+
+weight_test_expanded = weight_test.reshape(weight_test.shape[0],1,weight_test.shape[1])
+weight_expanded = weight.reshape(1,weight.shape[0],weight.shape[1])
+error = np.subtract(weight_test_expanded, weight_expanded)
+error = np.linalg.norm(error, axis=2)
+
+accuracy = np.sum(label_train[:,np.argmin(error,axis=1)] == label_test) / weight_test.shape[0]
+print("Confusion Matrix Accuracy :", accuracy)
+
+# success & failure cases
+print(label_train[:,np.argmin(error,axis=1)] == label_test)
+
+# confusion_matrix for last model
+confusion_matrix_result =  confusion_matrix(label_test.squeeze(), label_train[:,np.argmin(error,axis=1)].squeeze())#, normalize='all')
+sns.heatmap(confusion_matrix_result, cmap='Reds')
+plt.show()
+
+
+
 # face recognition accuracy for various Mpca
 Accuracies = []
 
@@ -130,6 +163,7 @@ plt.ylabel("Accuracy")
 plt.show()
 
 
+
 # face recognition accuracy for various Mlda
 Accuracies = []
 
@@ -158,34 +192,4 @@ for m in tqdm(range(Mlda)):
 plt.plot(Accuracies)
 plt.xlabel("Mlda")
 plt.ylabel("Accuracy")
-plt.show()
-
-# training base model for consufion matrix
-Wpca = eig_vec_st[:, :Mpca]
-Wopt, eig_vec_LDA = pca_lda(Wpca, sw, sb)
-Wlda = eig_vec_LDA[:, :Mlda]
-Wopt = np.matmul(Wpca, Wlda)
-
-A = np.subtract(data_train, mean_flatten.reshape(-1,1))
-
-weight = np.matmul(A.transpose(), Wopt)
-
-A_test = np.subtract(data_test, mean_flatten.reshape(-1,1))
-weight_test = np.matmul(A_test.transpose(), Wopt)
-
-weight_test_expanded = weight_test.reshape(weight_test.shape[0],1,weight_test.shape[1])
-weight_expanded = weight.reshape(1,weight.shape[0],weight.shape[1])
-error = np.subtract(weight_test_expanded, weight_expanded)
-error = np.linalg.norm(error, axis=2)
-
-accuracy = np.sum(label_train[:,np.argmin(error,axis=1)] == label_test) / weight_test.shape[0]
-
-print("Confusion Matrix Accuracy :", accuracy)
-
-# confusion_matrix for last model
-confusion_matrix_result =  confusion_matrix(label_test.squeeze(), label_train[:,np.argmin(error,axis=1)].squeeze())#, normalize='all')
-# print(confusion_matrix_result)
-# plt.imshow(confusion_matrix_result)
-# plt.show()
-sns.heatmap(confusion_matrix_result, cmap='Reds')
 plt.show()
