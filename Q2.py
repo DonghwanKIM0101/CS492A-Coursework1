@@ -9,7 +9,6 @@ from tqdm import tqdm
 from train_test_split import split
 from training_set_split import split_training_set
 
-M = 100
 WIDTH = 46
 HEIGHT = 56
 TEST_NUMBER = 2

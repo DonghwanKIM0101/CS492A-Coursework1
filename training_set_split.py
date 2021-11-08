@@ -33,4 +33,21 @@ def split_training_set(total_data, total_label, n_subset):
     # data_subsets.append(x[:, index]) # data
     # label_subsets.append(y[:, index]) # label
 
+
+    # index = (total_index % 8 == 0) + (total_index % 8 == 1) + (total_index % 8 == 2) + (total_index % 8 == 3)
+    # data_subsets.append(x[:, index]) # data
+    # label_subsets.append(y[:, index]) # label
+
+    # index = (total_index % 8 == 4) + (total_index % 8 == 5)
+    # data_subsets.append(x[:, index]) # data
+    # label_subsets.append(y[:, index]) # label
+
+    # index = (total_index % 8 == 6)
+    # data_subsets.append(x[:, index]) # data
+    # label_subsets.append(y[:, index]) # label
+
+    # index = (total_index % 8 == 7)
+    # data_subsets.append(x[:, index]) # data
+    # label_subsets.append(y[:, index]) # label
+
     return data_subsets, label_subsets

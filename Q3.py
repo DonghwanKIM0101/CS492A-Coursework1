@@ -19,13 +19,8 @@ Mlda = 51 # Maximum Mlda
 WIDTH = 46
 HEIGHT = 56
 TEST_NUMBER = 2
-
-start_time = time.time()
-# pid = os.getpid()
-# current_process = psutil.Process(pid)
-# current_process_memory_usage_as_KB = current_process.memory_info()[0] / 2.**20
-# print(f"BEFORE CODE: Current memory KB   : {current_process_memory_usage_as_KB: 9.3f} KB")
-
+LDA_ELAPSED_TIME = 0
+LDA_ONLY_TIME = 0
 
 def solve_eig(S):
     eig_val, eig_vec = np.linalg.eigh(S)
@@ -51,12 +46,20 @@ def scatter(data):
 
 
 def pca_lda(Wpca, sw, sb):
+    global LDA_ELAPSED_TIME
+    global LDA_ONLY_TIME
+
     #reduced sw and sb by the PCA
     sw_pca = np.matmul(np.matmul(Wpca.transpose(), sw), Wpca)
     sb_pca = np.matmul(np.matmul(Wpca.transpose(), sb), Wpca)
 
     # eig_val_LDA, eig_vec_LDA = solve_eig(np.divide(sb_pca, sw_pca))
-    eig_val_LDA, eig_vec_LDA = solve_eig(np.matmul(np.linalg.inv(sw_pca), sb_pca))
+    A = np.matmul(np.linalg.inv(sw_pca), sb_pca)
+    start_time = time.time()
+    eig_val_LDA, eig_vec_LDA = solve_eig(A)
+    end_time = time.time()
+    LDA_ELAPSED_TIME += end_time - start_time
+    LDA_ONLY_TIME += end_time - start_time
     Wlda = eig_vec_LDA[:, :Mlda]
     
     #Wopt
@@ -64,6 +67,11 @@ def pca_lda(Wpca, sw, sb):
 
     return Wopt, eig_vec_LDA
 
+# Memory
+pid = os.getpid()
+current_process = psutil.Process(pid)
+current_process_memory_usage_as_KB = current_process.memory_info()[0] / 2.**20
+print(f"BEFORE CODE: Current memory KB   : {current_process_memory_usage_as_KB: 9.3f} KB")
 
 mat = scipy.io.loadmat('face.mat')
 data_train, label_train , data_test, label_test = split(mat, TEST_NUMBER)
@@ -97,7 +105,9 @@ print("is sw singular? :", np.linalg.det(sw) == 0)
 st = sb + sw
 
 #Perform PCA
+start_time = time.time()
 eig_val_st, eig_vec_st = solve_eig(st)
+LDA_ELAPSED_TIME += time.time() - start_time
 
 
 
@@ -120,76 +130,84 @@ error = np.subtract(weight_test_expanded, weight_expanded)
 error = np.linalg.norm(error, axis=2)
 
 accuracy = np.sum(label_train[:,np.argmin(error,axis=1)] == label_test) / weight_test.shape[0]
+
+pid = os.getpid()
+current_process = psutil.Process(pid)
+current_process_memory_usage_as_KB = current_process.memory_info()[0] / 2.**20
+print(f"AFTER  CODE: Current memory KB   : {current_process_memory_usage_as_KB: 9.3f} KB")
+
+print("PCA-LDA Elapsed Time : ", LDA_ELAPSED_TIME)
+print("Only LDA Elapsed Time : ", LDA_ONLY_TIME)
 print("Confusion Matrix Accuracy :", accuracy)
 
-# success & failure cases
-print(label_train[:,np.argmin(error,axis=1)] == label_test)
+# # success & failure cases
+# print(label_train[:,np.argmin(error,axis=1)] == label_test)
 
-# confusion_matrix for last model
-confusion_matrix_result =  confusion_matrix(label_test.squeeze(), label_train[:,np.argmin(error,axis=1)].squeeze())#, normalize='all')
-sns.heatmap(confusion_matrix_result, cmap='Reds')
-plt.show()
-
-
-
-# face recognition accuracy for various Mpca
-Accuracies = []
-
-A = np.subtract(data_train, mean_flatten.reshape(-1,1))
-
-for m in tqdm(range(Mpca)):
-    #Perform LDA
-    Wpca = eig_vec_st[:, :m]
-    Wopt, eig_vec_LDA = pca_lda(Wpca, sw, sb)
-
-    Wlda = eig_vec_LDA[:, :Mlda]
-    Wopt = np.matmul(Wpca, Wlda)
-
-    weight = np.matmul(A.transpose(), Wopt)
-
-    A_test = np.subtract(data_test, mean_flatten.reshape(-1,1))
-    weight_test = np.matmul(A_test.transpose(), Wopt)
-
-    weight_test_expanded = weight_test.reshape(weight_test.shape[0],1,weight_test.shape[1])
-    weight_expanded = weight.reshape(1,weight.shape[0],weight.shape[1])
-    error = np.subtract(weight_test_expanded, weight_expanded)
-    error = np.linalg.norm(error, axis=2)
-
-    Accuracies.append(np.sum(label_train[:,np.argmin(error,axis=1)] == label_test) / weight_test.shape[0])
-
-plt.plot(Accuracies)
-plt.xlabel("Mpca")
-plt.ylabel("Accuracy")
-plt.show()
+# # confusion_matrix for last model
+# confusion_matrix_result =  confusion_matrix(label_test.squeeze(), label_train[:,np.argmin(error,axis=1)].squeeze())#, normalize='all')
+# sns.heatmap(confusion_matrix_result, cmap='Reds')
+# plt.show()
 
 
 
-# face recognition accuracy for various Mlda
-Accuracies = []
+# # face recognition accuracy for various Mpca
+# Accuracies = []
 
-A = np.subtract(data_train, mean_flatten.reshape(-1,1))
+# A = np.subtract(data_train, mean_flatten.reshape(-1,1))
 
-#Perform LDA
-Wpca = eig_vec_st[:, :Mpca]
-Wopt, eig_vec_LDA = pca_lda(Wpca, sw, sb)
+# for m in tqdm(range(Mpca)):
+#     #Perform LDA
+#     Wpca = eig_vec_st[:, :m]
+#     Wopt, eig_vec_LDA = pca_lda(Wpca, sw, sb)
 
-for m in tqdm(range(Mlda)):
-    Wlda = eig_vec_LDA[:, :m]
-    Wopt = np.matmul(Wpca, Wlda)
+#     Wlda = eig_vec_LDA[:, :Mlda]
+#     Wopt = np.matmul(Wpca, Wlda)
 
-    weight = np.matmul(A.transpose(), Wopt)
+#     weight = np.matmul(A.transpose(), Wopt)
 
-    A_test = np.subtract(data_test, mean_flatten.reshape(-1,1))
-    weight_test = np.matmul(A_test.transpose(), Wopt)
+#     A_test = np.subtract(data_test, mean_flatten.reshape(-1,1))
+#     weight_test = np.matmul(A_test.transpose(), Wopt)
 
-    weight_test_expanded = weight_test.reshape(weight_test.shape[0],1,weight_test.shape[1])
-    weight_expanded = weight.reshape(1,weight.shape[0],weight.shape[1])
-    error = np.subtract(weight_test_expanded, weight_expanded)
-    error = np.linalg.norm(error, axis=2)
+#     weight_test_expanded = weight_test.reshape(weight_test.shape[0],1,weight_test.shape[1])
+#     weight_expanded = weight.reshape(1,weight.shape[0],weight.shape[1])
+#     error = np.subtract(weight_test_expanded, weight_expanded)
+#     error = np.linalg.norm(error, axis=2)
 
-    Accuracies.append(np.sum(label_train[:,np.argmin(error,axis=1)] == label_test) / weight_test.shape[0])
+#     Accuracies.append(np.sum(label_train[:,np.argmin(error,axis=1)] == label_test) / weight_test.shape[0])
 
-plt.plot(Accuracies)
-plt.xlabel("Mlda")
-plt.ylabel("Accuracy")
-plt.show()
+# plt.plot(Accuracies)
+# plt.xlabel("Mpca")
+# plt.ylabel("Accuracy")
+# plt.show()
+
+
+
+# # face recognition accuracy for various Mlda
+# Accuracies = []
+
+# A = np.subtract(data_train, mean_flatten.reshape(-1,1))
+
+# #Perform LDA
+# Wpca = eig_vec_st[:, :Mpca]
+# Wopt, eig_vec_LDA = pca_lda(Wpca, sw, sb)
+
+# for m in tqdm(range(Mlda)):
+#     Wlda = eig_vec_LDA[:, :m]
+#     Wopt = np.matmul(Wpca, Wlda)
+
+#     weight = np.matmul(A.transpose(), Wopt)
+
+#     A_test = np.subtract(data_test, mean_flatten.reshape(-1,1))
+#     weight_test = np.matmul(A_test.transpose(), Wopt)
+
+#     weight_test_expanded = weight_test.reshape(weight_test.shape[0],1,weight_test.shape[1])
+#     weight_expanded = weight.reshape(1,weight.shape[0],weight.shape[1])
+#     error = np.subtract(weight_test_expanded, weight_expanded)
+#     error = np.linalg.norm(error, axis=2)
+
+#     Accuracies.append(np.sum(label_train[:,np.argmin(error,axis=1)] == label_test) / weight_test.shape[0])
+
+# plt.plot(Accuracies)
+# plt.xlabel("Mlda")
+# plt.ylabel("Accuracy")
+# plt.show()

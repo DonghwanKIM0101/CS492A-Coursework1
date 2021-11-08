@@ -15,16 +15,16 @@ WIDTH = 46
 HEIGHT = 56
 TEST_NUMBER = 8 
 
-PCA_ELAPSED_TIME = 0
-LOW_PCA_ELAPSED_TIME = 0
-
+start_time = time.time()
 # pid = os.getpid()
 # current_process = psutil.Process(pid)
 # current_process_memory_usage_as_KB = current_process.memory_info()[0] / 2.**20
 # print(f"BEFORE CODE: Current memory KB   : {current_process_memory_usage_as_KB: 9.3f} KB")
 
 def solve_eig(S):
+    # start_time = time.time()
     eig_val, eig_vec = np.linalg.eigh(S)
+    # print("elasped time is ", time.time() - start_time)
     
     sorted_eig_val = np.flip(eig_val)
     sorted_eig_vec = np.flip(eig_vec, axis=1)
@@ -38,6 +38,8 @@ def solve_eig(S):
 
 mat = scipy.io.loadmat('face.mat')
 data_train, _ , data_test, _ = split(mat, TEST_NUMBER)
+# data = data_train.reshape(WIDTH,HEIGHT,-1)
+# data = np.transpose(data, (1,0,2))
 
 # mean_image = np.uint8(np.average(data,2))
 mean_flatten = np.average(data_train,1)
@@ -45,23 +47,15 @@ mean_flatten = np.average(data_train,1)
 
 A = np.subtract(data_train, mean_flatten.reshape(-1,1))
 S = np.matmul(A, A.transpose()) / data_train.shape[1]
-S_low = np.matmul(A.transpose(), A) / data_train.shape[1]
-print(S_low.shape)
+# S_low = np.matmul(A.transpose(), A) / data_train.shape[1]
 
-start_time = time.time()
 eig_val, eig_vec = solve_eig(S)
-PCA_ELAPSED_TIME += time.time() - start_time
-print("PCA Training Time :", PCA_ELAPSED_TIME)
-
-start_time = time.time()
-eig_val_low, eig_vec_low = solve_eig(S_low)
-LOW_PCA_ELAPSED_TIME += time.time() - start_time
-print("Low PCA Training Time :", LOW_PCA_ELAPSED_TIME)
-
+# eig_val_low, eig_vec_low = solve_eig(S_low)
 
 # eig_vec_low_ = np.matmul(A, eig_vec_low)
 # eig_vec_low_ /= np.linalg.norm(eig_vec_low_,axis=0,keepdims=True)
 
+print("elasped time is ", time.time() - start_time)
 # pid = os.getpid()
 # current_process = psutil.Process(pid)
 # current_process_memory_usage_as_KB = current_process.memory_info()[0] / 2.**20
