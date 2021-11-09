@@ -27,6 +27,7 @@ for T = 1:param.num
     prior = histc(data(idx,end),labels)/length(idx);
     
     tree(T).weak_learner = param.weak_learner;
+    tree(T).descriptor_mode = param.descriptor_mode;
     % Initialise base node
     if strcmp(param.weak_learner, 'axis-aligned')
         tree(T).node(1) = struct('idx',idx,'t',nan,'dim',-1,'prob',[]);
