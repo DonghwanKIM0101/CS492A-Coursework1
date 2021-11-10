@@ -7,7 +7,11 @@ for T = 1:length(tree)
         if (strcmp(tree(T).weak_learner, 'axis-aligned') && ~tree(T).node(n).dim) || (strcmp(tree(T).weak_learner, 'two-pixel') && (~tree(T).node(n).dimi || ~tree(T).node(n).dimj))
             leaf_idx = tree(T).node(n).leaf_idx;
             if ~isempty(tree(T).leaf(leaf_idx))
-                label(idx{n}',T) = tree(T).leaf(leaf_idx).label;
+                if strcmp(tree(T).descriptor_mode, 'RF')
+                    label(idx{n}',T) = tree(T).leaf(leaf_idx).label;
+                elseif strcmp(tree(T).descriptor_mode, 'RF-codebook')
+                    label(idx{n}',T) = leaf_idx;
+                end
             end
             continue;
         end

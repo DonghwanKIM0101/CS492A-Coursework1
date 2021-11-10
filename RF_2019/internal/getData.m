@@ -79,7 +79,7 @@ switch MODE
         
     case 'Caltech' % Caltech dataset
         close all;
-%         load('imgIdx.mat', 'imgIdx')
+        load('imgIdx.mat', 'imgIdx')
         imgSel = [15 15]; % randomly select 15 images each class without replacement. (For both training & testing)
         folderName = './Caltech_101/101_ObjectCategories';
         classList = dir(folderName);
@@ -92,11 +92,11 @@ switch MODE
             figure('Units','normalized','Position',[.05 .1 .4 .9]);
             suptitle('Training image samples');
         end
-        tic
+
         for c = 1:length(classList)
             subFolderName = fullfile(folderName,classList{c});
             imgList = dir(fullfile(subFolderName,'*.jpg'));
-            imgIdx{c} = randperm(length(imgList));
+%             imgIdx{c} = randperm(length(imgList));
             imgIdx_tr = imgIdx{c}(1:imgSel(1));
             imgIdx_te = imgIdx{c}(imgSel(1)+1:sum(imgSel));
             
@@ -119,13 +119,13 @@ switch MODE
                 [~, desc_tr{c,i}] = vl_phow(single(I),'Sizes',PHOW_Sizes,'Step',PHOW_Step); %  extracts PHOW features (multi-scaled Dense SIFT)
             end
         end
-        toc
+
         disp('Building visual codebook...')
         % Build visual vocabulary (codebook) for 'Bag-of-Words method'
         desc_sel = single(vl_colsubset(cat(2,desc_tr{:}), 10e4)); % Randomly select 100k SIFT descriptors for clustering
         
         % K-means clustering
-        numBins = 256; % for instance,
+        numBins = 16; % for instance,
         
         
         % write your own codes here
@@ -133,7 +133,9 @@ switch MODE
                   
         disp('Encoding Images...')
         % Vector Quantisation
+        tic
         [KmeansIdx, C] = kmeans(desc_sel', numBins);
+        toc
         histogram_tr = zeros(length(classList)*length(imgIdx_tr),numBins);
         cnt = 1;
 
@@ -182,7 +184,6 @@ switch MODE
         disp('Processing testing images...');
         cnt = 1;
         % Load Images -> Description (Dense SIFT)
-        tic
         for c = 1:length(classList)
             subFolderName = fullfile(folderName,classList{c});
             imgList = dir(fullfile(subFolderName,'*.jpg'));
@@ -211,8 +212,9 @@ switch MODE
 %             figure('Units','normalized','Position',[.5 .1 .4 .9]);
 %         suptitle('Testing image representations: 256-D histograms');
 %         end
-        toc
+
         % Quantisation
+        tic
         histogram_te = zeros(length(classList)*length(imgIdx_te),numBins);
         cnt = 1;
 
@@ -244,9 +246,8 @@ switch MODE
         end
         toc
 %         save('imgIdx.mat', 'imgIdx')
-%         save(sprintf('histogram_%d.mat', numBins), 'histogram_tr', 'histogram_te');
+        save(sprintf('histogram_%d.mat', numBins), 'histogram_tr', 'histogram_te');
 %         save('desc.mat', 'desc_tr', 'desc_te')
-%         save('desc_test.mat', 'desc_tr', 'desc_te')
 
         % write your own codes here
         % ...
